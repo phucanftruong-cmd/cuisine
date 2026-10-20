@@ -11,12 +11,18 @@ public class AppDbContext : DbContext
 
     public DbSet<Place> Places => Set<Place>();
     public DbSet<Translation> Translations => Set<Translation>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Mỗi địa điểm chỉ có một bản dịch cho mỗi ngôn ngữ
         modelBuilder.Entity<Translation>()
             .HasIndex(t => new { t.PlaceId, t.LanguageCode })
+            .IsUnique();
+
+        // Tên đăng nhập không được trùng
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
             .IsUnique();
     }
 }

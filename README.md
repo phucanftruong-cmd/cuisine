@@ -84,3 +84,21 @@ Workflow `.github/workflows/ci.yml` dùng GitHub Actions:
 - **CD** (chỉ khi push vào `main` và test đã qua): build Docker image và đẩy lên GitHub Container Registry (`ghcr.io/phucanftruong-cmd/cuisine`) với hai tag là `latest` và mã commit.
 
 Quy trình làm việc: mỗi chức năng một nhánh `feature/...`, mở Pull Request vào `main`, CI phải xanh mới merge.
+
+## Xác thực và phân quyền (JWT)
+
+- `POST /api/auth/register`: đăng ký tài khoản thường (role `User`), trả về token.
+- `POST /api/auth/login`: đăng nhập, trả về token JWT (hết hạn sau 60 phút).
+- Xem địa điểm và xem bản dịch: không cần đăng nhập.
+- Tạo, sửa, xóa địa điểm: chỉ role `Admin`. Gửi kèm header `Authorization: Bearer <token>`.
+
+Mật khẩu được băm bằng BCrypt. Cấu hình bí mật lưu bằng user-secrets (không đưa vào code):
+
+```bash
+cd server
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)" --project src/AudioGuide.Api
+dotnet user-secrets set "Admin:Username" "admin" --project src/AudioGuide.Api
+dotnet user-secrets set "Admin:Password" "mat-khau-cua-ban" --project src/AudioGuide.Api
+```
+
+Khi khởi động, nếu chưa có tài khoản admin thì server tự tạo từ `Admin:Username` và `Admin:Password`. Nếu bạn đổi `Admin:Password` sau đó, tài khoản đã có không bị đổi mật khẩu.
