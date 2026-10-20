@@ -7,10 +7,12 @@ namespace AudioGuide.Business.Services;
 public class PlaceService : IPlaceService
 {
     private readonly IPlaceRepository _repo;
+    private readonly ITranslationRepository _translations;
 
-    public PlaceService(IPlaceRepository repo)
+    public PlaceService(IPlaceRepository repo, ITranslationRepository translations)
     {
         _repo = repo;
+        _translations = translations;
     }
 
     public async Task<List<PlaceDto>> GetAllAsync()
@@ -46,10 +48,18 @@ public class PlaceService : IPlaceService
         var place = await _repo.GetByIdAsync(id);
         if (place is null) return null;
 
+        var newDescription = dto.Description.Trim();
+        var descriptionChanged = place.Description != newDescription;
+
         place.Name = dto.Name.Trim();
-        place.Description = dto.Description.Trim();
+        place.Description = newDescription;
 
         await _repo.UpdateAsync(place);
+
+        // Nội dung gốc đổi thì các bản dịch cũ không còn đúng nữa
+        if (descriptionChanged)
+            await _translations.DeleteByPlaceIdAsync(id);
+
         return ToDto(place);
     }
 
