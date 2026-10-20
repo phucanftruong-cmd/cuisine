@@ -22,4 +22,7 @@ public class TranslationRepository : ITranslationRepository
         await _db.SaveChangesAsync();
         return translation;
     }
+
+    public Task DeleteByPlaceIdAsync(int placeId) =>
+        _db.Translations.Where(t => t.PlaceId == placeId).ExecuteDeleteAsync();
 }

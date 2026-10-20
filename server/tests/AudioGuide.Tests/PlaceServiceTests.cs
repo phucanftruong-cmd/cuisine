@@ -9,11 +9,12 @@ namespace AudioGuide.Tests;
 public class PlaceServiceTests
 {
     private readonly Mock<IPlaceRepository> _repo = new();
+    private readonly Mock<ITranslationRepository> _translations = new();
     private readonly PlaceService _service;
 
     public PlaceServiceTests()
     {
-        _service = new PlaceService(_repo.Object);
+        _service = new PlaceService(_repo.Object, _translations.Object);
     }
 
     [Fact]
@@ -123,5 +124,26 @@ public class PlaceServiceTests
 
         Assert.False(result);
         _repo.Verify(r => r.DeleteAsync(It.IsAny<Place>()), Times.Never);
+    }
+    [Fact]
+    public async Task UpdateAsync_DescriptionChanged_ClearsTranslationCache()
+    {
+        var place = new Place { Id = 1, Name = "A", Description = "cũ" };
+        _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
+
+        await _service.UpdateAsync(1, new UpdatePlaceDto("A", "mới"));
+
+        _translations.Verify(t => t.DeleteByPlaceIdAsync(1), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_OnlyNameChanged_KeepsTranslationCache()
+    {
+        var place = new Place { Id = 1, Name = "A", Description = "nội dung" };
+        _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
+
+        await _service.UpdateAsync(1, new UpdatePlaceDto("B", "nội dung"));
+
+        _translations.Verify(t => t.DeleteByPlaceIdAsync(It.IsAny<int>()), Times.Never);
     }
 }
