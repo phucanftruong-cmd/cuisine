@@ -1,0 +1,14 @@
+services:
+  api:
+    build: ./server
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Data Source=/data/audioguide.db
+      MyMemory__Email: ${MYMEMORY_EMAIL:-}
+    volumes:
+      - audioguide-data:/data
+
+volumes:
+  audioguide-data:
