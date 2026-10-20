@@ -7,6 +7,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Data Source=/data/audioguide.db
       MyMemory__Email: ${MYMEMORY_EMAIL:-}
+      Jwt__Key: ${JWT_KEY:?Thiếu JWT_KEY trong file .env}
+      Admin__Username: ${ADMIN_USERNAME:-admin}
+      Admin__Password: ${ADMIN_PASSWORD:?Thiếu ADMIN_PASSWORD trong file .env}
     volumes:
       - audioguide-data:/data
 
