@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { getPlace, getTranslation } from "../api";
 import { useAuth } from "../auth/useAuth";
+import PlaceImage from "../components/PlaceImage";
 import { formatPrice } from "../utils/format";
 
 const LANGUAGES = [
@@ -80,7 +81,7 @@ function PlaceDetail({ id }) {
           ← Quay lại danh sách
         </Link>
         {isAdmin && (
-          <Link to={`/admin/places/${id}/edit`} className="action-link">
+          <Link to={`/admin/places/${id}/edit`} className="admin-edit-link">
             ✏️ Sửa quán này
           </Link>
         )}
@@ -88,7 +89,13 @@ function PlaceDetail({ id }) {
 
       <article className="detail">
         {place.imageUrl && (
-          <img src={place.imageUrl} alt={place.name} className="detail-image" />
+          <PlaceImage
+            src={place.imageUrl}
+            alt={place.name}
+            className="detail-image"
+            fallbackClassName="detail-image--hidden"
+            loading="eager"
+          />
         )}
 
         {place.category && <span className="badge">{place.category}</span>}

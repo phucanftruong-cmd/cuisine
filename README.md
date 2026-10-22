@@ -10,9 +10,9 @@ Backend ASP.NET Core theo kiến trúc 3 lớp, frontend React (Vite), có CI b�
 client/   Frontend React + Vite
   src/
     pages/              Trang khách: danh sách quán, chi tiết quán, đăng nhập
-    pages/admin/        Trang quản trị: danh sách quán, form thêm/sửa
+    pages/admin/        Trang quản trị: tổng quan, danh sách quán, form thêm/sửa
     auth/               Lưu phiên đăng nhập, chặn trang admin
-    utils/placeForm.js  Kiểm tra dữ liệu form (kèm unit test)
+    utils/              Kiểm tra dữ liệu form, tính hồ sơ quán (kèm unit test)
 server/
   src/
     AudioGuide.Api/       Presentation: Controllers, Middleware, Program.cs
@@ -61,10 +61,13 @@ npm test
 
 Vào http://localhost:5173/admin (hoặc bấm **Đăng nhập** trên thanh đầu trang) và đăng nhập bằng tài khoản admin.
 
-- **Danh sách quán** (`/admin`): tìm không dấu, lọc theo loại món và phường, phân trang 10 quán mỗi trang. Mỗi quán có nút Xem, Sửa, Xóa (xóa có hộp thoại xác nhận).
-- **Thêm / sửa quán** (`/admin/places/new`, `/admin/places/{id}/edit`): form chia nhóm, kiểm tra dữ liệu ngay trên trình duyệt theo đúng luật của backend (bắt buộc, độ dài, giá, tọa độ, link ảnh). Có xem trước ảnh, dán cặp tọa độ copy từ Google Maps vào ô Vĩ độ là tự tách, cảnh báo khi rời trang mà chưa lưu.
+- **Tổng quan** (`/admin`): bao nhiêu quán đã đủ hồ sơ (có địa chỉ, ảnh, vị trí bản đồ, giá, giờ mở cửa và không còn là dữ liệu mẫu), mỗi ô vuông là một quán. Bấm vào từng mục còn thiếu để ra danh sách quán cần bổ sung.
+- **Quán ăn** (`/admin/places`): tìm không dấu, lọc theo loại món, phường và hồ sơ còn thiếu, phân trang 10 quán mỗi trang. Cột Hồ sơ cho biết quán đã có gì; ô ảnh màu đỏ là link ảnh hỏng.
+- **Thêm / sửa quán** (`/admin/places/new`, `/admin/places/{id}/edit`): form kiểm tra dữ liệu ngay trên trình duyệt theo đúng luật của backend. Bên phải có thẻ xem trước đúng như khách thấy. Link ảnh được thử tải ngay khi dán, link hỏng sẽ không cho lưu. Dán cặp tọa độ copy từ Google Maps vào ô Vĩ độ là tự tách. Rời trang mà chưa lưu sẽ được hỏi lại.
 - **Bản dịch đã lưu**: ở trang sửa quán, xem các bản dịch đã cache và xóa để dịch lại.
 - Tài khoản thường (role `User`) không vào được trang quản trị. Token hết hạn thì tự đăng xuất và đưa về trang đăng nhập; đăng nhập lại sẽ quay về đúng trang đang làm.
+
+Ảnh quán: nhiều trang (báo, mạng xã hội) chặn nhúng ảnh sang web khác. Web không gửi thông tin trang nguồn (`referrerPolicy="no-referrer"`) nên phần lớn link vẫn hiện được; link nào vẫn hỏng thì trang khách hiện khung 🍜 thay vì ảnh vỡ.
 
 ## API hiện có
 
