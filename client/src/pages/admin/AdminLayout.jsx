@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../auth/useAuth";
 import Icon from "../../components/Icon";
+import { LogoMark } from "../../components/layout/Logo";
 import { useToast } from "./toastContext";
 
 const NAV = [
@@ -44,11 +45,9 @@ export default function AdminLayout({ title, description, back, actions, childre
       <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
         <div className="admin-brand">
           <Link to="/admin" className="admin-brand-link">
-            <span className="admin-brand-mark" aria-hidden="true">
-              🍜
-            </span>
+            <LogoMark />
             <span>
-              <strong>Ẩm thực Quận 6</strong>
+              <strong>TourVoice</strong>
               <small>Trang quản trị</small>
             </span>
           </Link>
