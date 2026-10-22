@@ -1,7 +1,7 @@
 // Unit test cho phần xử lý giọng đọc. Chạy: npm test
 import assert from "node:assert/strict";
 import test from "node:test";
-import { pickVoice, speechLang, splitForSpeech } from "./speech.js";
+import { pickVoice, speechLang, splitForSpeech, voiceLabel, voiceQuality, voicesForLang } from "./speech.js";
 
 test("đổi mã ngôn ngữ của app sang mã giọng đọc", () => {
   assert.equal(speechLang("vi"), "vi-VN");
@@ -21,6 +21,35 @@ test("chọn giọng: đúng mã vùng trước, rồi cùng ngôn ngữ, ưu ti
   assert.equal(pickVoice(voices, "en-AU").name, "Samantha");
   assert.equal(pickVoice(voices, "ko-KR"), null);
   assert.equal(pickVoice([], "vi-VN"), null);
+});
+
+test("ưu tiên giọng tự nhiên / nâng cao hơn giọng rút gọn", () => {
+  const voices = [
+    { name: "Linh", lang: "vi-VN" },
+    { name: "Linh (Enhanced)", lang: "vi-VN" },
+    { name: "Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)", lang: "vi-VN" },
+    { name: "Samantha", lang: "en-US", default: true },
+  ];
+  assert.equal(pickVoice(voices, "vi-VN").name, "Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)");
+  assert.deepEqual(
+    voicesForLang(voices, "vi-VN").map((v) => v.name),
+    ["Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)", "Linh (Enhanced)", "Linh"],
+  );
+  assert.ok(voiceQuality({ name: "Linh (Compact)" }) < voiceQuality({ name: "Linh" }));
+});
+
+test("giọng người dùng đã chọn được dùng nếu máy còn giọng đó", () => {
+  const voices = [
+    { name: "Linh", lang: "vi-VN" },
+    { name: "Linh (Enhanced)", lang: "vi-VN" },
+  ];
+  assert.equal(pickVoice(voices, "vi-VN", "Linh").name, "Linh");
+  assert.equal(pickVoice(voices, "vi-VN", "Giọng đã gỡ").name, "Linh (Enhanced)");
+});
+
+test("tên giọng ngắn gọn", () => {
+  assert.equal(voiceLabel({ name: "Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)" }), "HoaiMy Online (Natural)");
+  assert.equal(voiceLabel({ name: "Linh (Enhanced)" }), "Linh (Enhanced)");
 });
 
 test("chia văn bản theo câu", () => {

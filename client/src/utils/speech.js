@@ -24,15 +24,45 @@ export const speechLang = (lang) => SPEECH_LANGS[lang] ?? lang;
 
 const normalizeTag = (tag) => (tag ?? "").replace("_", "-").toLowerCase();
 
-// Chọn giọng đọc phù hợp: đúng mã vùng (vi-VN) trước, rồi cùng ngôn ngữ (vi), giọng mặc định được ưu tiên
-export function pickVoice(voices, langTag) {
+// Tốc độ đọc: chậm hơn mặc định một chút nghe tự nhiên và dễ nghe hơn với khách
+export const SPEECH_RATE = 0.92;
+
+// Điểm chất lượng của một giọng. Giọng "tự nhiên"/nâng cao (Natural, Neural, Online, Premium, Enhanced)
+// nghe giống người thật hơn nhiều so với giọng rút gọn (Compact) cài sẵn.
+export function voiceQuality(voice) {
+  const name = (voice?.name ?? "").toLowerCase();
+  let score = 0;
+  // Giọng AI (Natural/Neural) hay nhất, rồi đến giọng tải thêm chất lượng cao (Premium/Enhanced)
+  if (/natural|neural|wavenet/.test(name)) score += 4;
+  else if (/online|premium|enhanced|siri/.test(name)) score += 3;
+  if (name.includes("google")) score += 2;
+  if (/compact|eloquence|espeak/.test(name)) score -= 2;
+  if (voice?.default) score += 1;
+  return score;
+}
+
+// Các giọng đọc được ngôn ngữ này, giọng tốt nhất lên đầu (đúng mã vùng trước, rồi theo chất lượng)
+export function voicesForLang(voices, langTag) {
   const wanted = normalizeTag(langTag);
   const base = wanted.split("-")[0];
-  const byPreference = (list) => list.find((v) => v.default) ?? list[0] ?? null;
-  const exact = voices.filter((v) => normalizeTag(v.lang) === wanted);
-  if (exact.length) return byPreference(exact);
-  const sameLanguage = voices.filter((v) => normalizeTag(v.lang).split("-")[0] === base);
-  return byPreference(sameLanguage);
+  const exact = (v) => (normalizeTag(v.lang) === wanted ? 1 : 0);
+  return voices
+    .filter((v) => normalizeTag(v.lang).split("-")[0] === base)
+    .sort((a, b) => exact(b) - exact(a) || voiceQuality(b) - voiceQuality(a) || a.name.localeCompare(b.name));
+}
+
+// Chọn giọng: giọng người dùng đã chọn trước đó (nếu máy còn), không thì giọng tốt nhất
+export function pickVoice(voices, langTag, preferredName) {
+  const list = voicesForLang(voices, langTag);
+  return (preferredName && list.find((v) => v.name === preferredName)) || list[0] || null;
+}
+
+// Tên giọng ngắn gọn để hiện trong ô chọn: "Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)" -> "HoaiMy Online (Natural)"
+export function voiceLabel(voice) {
+  return (voice?.name ?? "")
+    .replace(/^(Microsoft|Google|Apple)\s+/i, "")
+    .replace(/\s+-\s+.*$/, "")
+    .trim();
 }
 
 // Chia văn bản thành các đoạn ngắn để đọc lần lượt.

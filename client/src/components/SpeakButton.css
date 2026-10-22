@@ -105,3 +105,23 @@
 .field .speak {
   margin-top: 2px;
 }
+
+/* Ô chọn giọng đọc cạnh nút nghe */
+.speak-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.speak-voice select {
+  max-width: 220px;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #eadfd3);
+  border-radius: 999px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
