@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { getPlace, getTranslation } from "../api";
 import { useAuth } from "../auth/useAuth";
 import PlaceImage from "../components/PlaceImage";
+import SpeakButton from "../components/SpeakButton";
 import { formatPrice } from "../utils/format";
 
 const LANGUAGES = [
@@ -13,6 +14,16 @@ const LANGUAGES = [
   { code: "ko", label: "한국어" },
   { code: "zh-CN", label: "简体中文" },
 ];
+
+// Nhãn nút nghe theo ngôn ngữ khách đang chọn
+const LISTEN_LABELS = {
+  vi: ["Nghe thuyết minh", "Dừng đọc"],
+  en: ["Listen", "Stop"],
+  fr: ["Écouter", "Arrêter"],
+  ja: ["音声で聞く", "停止"],
+  ko: ["듣기", "정지"],
+  "zh-CN": ["收听", "停止"],
+};
 
 export default function PlaceDetailPage() {
   const { id } = useParams();
@@ -153,6 +164,16 @@ function PlaceDetail({ id }) {
           </p>
         )}
 
+        {text && (
+          <div className="detail-speak">
+            <SpeakButton
+              text={text}
+              lang={lang}
+              label={LISTEN_LABELS[lang]?.[0] ?? LISTEN_LABELS.vi[0]}
+              stopLabel={LISTEN_LABELS[lang]?.[1] ?? LISTEN_LABELS.vi[1]}
+            />
+          </div>
+        )}
         {text && <p className="description">{text}</p>}
         {lang !== "vi" && text && (
           <p className="note">Bản dịch tự động, có thể chưa chính xác.</p>

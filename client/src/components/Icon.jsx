@@ -103,6 +103,14 @@ const PATHS = {
       <path d="m13 21 4-9 4 9M14.5 18h5" />
     </>
   ),
+  volume: (
+    <>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+      <path d="M15.5 9a4.2 4.2 0 0 1 0 6" />
+      <path d="M18.25 6.5a8 8 0 0 1 0 11" />
+    </>
+  ),
+  stop: <rect x="7" y="7" width="10" height="10" rx="1.5" />,
 };
 
 export default function Icon({ name, size = 18, className = "", title }) {

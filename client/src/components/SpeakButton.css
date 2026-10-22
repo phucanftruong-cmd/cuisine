@@ -1,0 +1,107 @@
+/* Nút nghe thuyết minh (dùng ở trang khách và trang admin) */
+.speak {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.speak-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent, #d9480f);
+  background: #fff;
+  color: var(--accent, #d9480f);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Ghi đè kiểu nút mặc định của trang (nền cam khi rê chuột) */
+.speak .speak-button:hover:not(:disabled) {
+  background: #fff3ea;
+}
+
+.speak .speak-button.is-speaking {
+  background: var(--accent, #d9480f);
+  color: #fff;
+}
+
+.speak .speak-button.is-speaking:hover:not(:disabled) {
+  background: var(--accent-dark, #a63a0b);
+}
+
+.speak-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Ba vạch nhấp nhô cho biết đang đọc */
+.speak-wave {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.speak-wave span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  animation: speak-wave 0.9s ease-in-out infinite;
+}
+
+.speak-wave span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.speak-wave span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes speak-wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.speak-issue {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8f6100;
+}
+
+/* Bản chỉ có biểu tượng trong bảng admin */
+.speak-compact.is-speaking,
+.admin-shell .speak-compact.is-speaking:hover:not(:disabled) {
+  background: var(--accent, #d9480f);
+  color: #fff;
+}
+
+.speak-compact:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak-wave span {
+    animation: none;
+  }
+}
+
+/* Vị trí nút trên trang chi tiết quán và trong form admin */
+.detail-speak {
+  margin: 4px 0 4px;
+}
+
+.field .speak {
+  margin-top: 2px;
+}

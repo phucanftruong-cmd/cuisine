@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router";
 import { deletePlace, getAllPlaces, getPlaceFilters, getPlaces } from "../../api";
 import { useAuth } from "../../auth/useAuth";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import SpeakButton from "../../components/SpeakButton";
 import Icon from "../../components/Icon";
 import Pagination from "../../components/Pagination";
 import PlaceImage from "../../components/PlaceImage";
@@ -312,6 +313,11 @@ export default function AdminPlacesPage() {
                             >
                               <Icon name="edit" />
                             </Link>
+                            <SpeakButton
+                              text={place.description}
+                              compact
+                              label={`Nghe thuyết minh ${place.name}`}
+                            />
                             <button
                               type="button"
                               className="admin-icon-button admin-icon-button--danger"

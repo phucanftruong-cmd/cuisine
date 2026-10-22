@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/useAuth";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Icon from "../../components/Icon";
 import PlaceCard from "../../components/PlaceCard";
+import SpeakButton from "../../components/SpeakButton";
 import {
   EMPTY_FORM,
   LIMITS,
@@ -299,6 +300,7 @@ function PlaceForm({ id }) {
               }
             >
               <textarea {...fieldProps("description")} rows={8} />
+            <SpeakButton text={values.description} label="Nghe thử" />
             </Field>
             {descriptionChanged && (
               <div className="notice notice--warning">
