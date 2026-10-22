@@ -14,14 +14,10 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Cấu hình JWT (khóa lấy từ user-secrets hoặc biến môi trường, không ghi trong code)
-var jwt = new JwtOptions
-{
-    Key = builder.Configuration["Jwt:Key"]
-          ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README)."),
-    Issuer = builder.Configuration["Jwt:Issuer"] ?? "AudioGuide",
-    Audience = builder.Configuration["Jwt:Audience"] ?? "AudioGuide.Client",
-    ExpiresMinutes = int.TryParse(builder.Configuration["Jwt:ExpiresMinutes"], out var minutes) ? minutes : 60
-};
+var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
+          ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README).");
+if (string.IsNullOrEmpty(jwt.Key))
+    throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README).");
 if (jwt.Key.Length < 32)
     throw new InvalidOperationException("Jwt:Key phải dài ít nhất 32 ký tự.");
 builder.Services.AddSingleton(jwt);

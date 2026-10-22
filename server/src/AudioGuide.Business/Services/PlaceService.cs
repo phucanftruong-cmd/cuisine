@@ -59,11 +59,9 @@ public class PlaceService : IPlaceService
         return place is null ? null : ToDto(place);
     }
 
-    public async Task<PlaceDto> CreateAsync(CreatePlaceDto dto)
+    public async Task<PlaceDto> CreateAsync(PlaceInputDto dto)
     {
-        var fields = Clean(dto.Name, dto.Description, dto.Address, dto.Ward, dto.Category,
-            dto.PriceMin, dto.PriceMax, dto.OpeningHours, dto.Phone, dto.ImageUrl,
-            dto.Latitude, dto.Longitude);
+        var fields = Clean(dto);
 
         var place = new Place();
         Apply(place, fields);
@@ -72,11 +70,9 @@ public class PlaceService : IPlaceService
         return ToDto(place);
     }
 
-    public async Task<PlaceDto?> UpdateAsync(int id, UpdatePlaceDto dto)
+    public async Task<PlaceDto?> UpdateAsync(int id, PlaceInputDto dto)
     {
-        var fields = Clean(dto.Name, dto.Description, dto.Address, dto.Ward, dto.Category,
-            dto.PriceMin, dto.PriceMax, dto.OpeningHours, dto.Phone, dto.ImageUrl,
-            dto.Latitude, dto.Longitude);
+        var fields = Clean(dto);
 
         var place = await _repo.GetByIdAsync(id);
         if (place is null) return null;
@@ -112,12 +108,8 @@ public class PlaceService : IPlaceService
 
         foreach (var sample in Samples)
         {
-            var fields = Clean(sample.Name, sample.Description, sample.Address, sample.Ward, sample.Category,
-                sample.PriceMin, sample.PriceMax, sample.OpeningHours, sample.Phone, sample.ImageUrl,
-                sample.Latitude, sample.Longitude);
-
             var place = new Place();
-            Apply(place, fields);
+            Apply(place, Clean(sample));
             await _repo.AddAsync(place);
         }
     }
@@ -126,7 +118,7 @@ public class PlaceService : IPlaceService
     private const string SampleNote =
         "Dữ liệu mẫu để thử giao diện, không phải quán thật. Hãy thay bằng thông tin bạn đã khảo sát.";
 
-    private static readonly CreatePlaceDto[] Samples =
+    private static readonly PlaceInputDto[] Samples =
     {
         new("[Mẫu] Phở bò", SampleNote, "Địa chỉ mẫu số 1, Quận 6, TP.HCM", "Phường mẫu 1", "Phở",
             40000, 70000, "06:00 - 21:00", null, null, 10.7465, 106.6350),
@@ -141,16 +133,11 @@ public class PlaceService : IPlaceService
     };
 
     // ---- Kiểm tra và chuẩn hóa dữ liệu nhập ----
-    private sealed record PlaceFields(
-        string Name, string Description, string? Address, string? Ward, string? Category,
-        int? PriceMin, int? PriceMax, string? OpeningHours, string? Phone, string? ImageUrl,
-        double? Latitude, double? Longitude);
-
-    private static PlaceFields Clean(
-        string name, string description, string? address, string? ward, string? category,
-        int? priceMin, int? priceMax, string? openingHours, string? phone, string? imageUrl,
-        double? latitude, double? longitude)
+    private static PlaceInputDto Clean(PlaceInputDto dto)
     {
+        var (name, description, address, ward, category, priceMin, priceMax,
+            openingHours, phone, imageUrl, latitude, longitude) = dto;
+
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Tên địa điểm không được để trống.");
         if (string.IsNullOrWhiteSpace(description))
@@ -185,7 +172,7 @@ public class PlaceService : IPlaceService
               (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)))
             throw new ArgumentException("Link ảnh phải là địa chỉ http hoặc https hợp lệ.");
 
-        return new PlaceFields(
+        return new PlaceInputDto(
             name.Trim(), description.Trim(), CleanText(address), CleanText(ward), CleanText(category),
             priceMin, priceMax, CleanText(openingHours), CleanText(phone), image, latitude, longitude);
     }
@@ -196,7 +183,7 @@ public class PlaceService : IPlaceService
             throw new ArgumentException($"{label} tối đa {max} ký tự.");
     }
 
-    private static void Apply(Place place, PlaceFields f)
+    private static void Apply(Place place, PlaceInputDto f)
     {
         place.Name = f.Name;
         place.Description = f.Description;

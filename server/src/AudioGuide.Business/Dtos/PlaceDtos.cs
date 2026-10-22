@@ -16,21 +16,8 @@ public record PlaceDto(
     double? Longitude,
     DateTime CreatedAt);
 
-public record CreatePlaceDto(
-    string Name,
-    string Description,
-    string? Address = null,
-    string? Ward = null,
-    string? Category = null,
-    int? PriceMin = null,
-    int? PriceMax = null,
-    string? OpeningHours = null,
-    string? Phone = null,
-    string? ImageUrl = null,
-    double? Latitude = null,
-    double? Longitude = null);
-
-public record UpdatePlaceDto(
+// Dữ liệu nhập khi thêm hoặc sửa quán (hai thao tác nhận cùng các trường)
+public record PlaceInputDto(
     string Name,
     string Description,
     string? Address = null,

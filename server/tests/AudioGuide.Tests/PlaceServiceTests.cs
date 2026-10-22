@@ -92,7 +92,7 @@ public class PlaceServiceTests
              .Callback<Place>(p => saved = p)
              .ReturnsAsync((Place p) => p);
 
-        var result = await _service.CreateAsync(new CreatePlaceDto(
+        var result = await _service.CreateAsync(new PlaceInputDto(
             "  Phở Bò Đặc Biệt  ", "  Mô tả  ", Category: "Phở", PriceMin: 40000, PriceMax: 70000));
 
         Assert.Equal("Phở Bò Đặc Biệt", result.Name);
@@ -109,7 +109,7 @@ public class PlaceServiceTests
     public async Task CreateAsync_EmptyFields_ThrowsAndDoesNotSave(string name, string description)
     {
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _service.CreateAsync(new CreatePlaceDto(name, description)));
+            () => _service.CreateAsync(new PlaceInputDto(name, description)));
 
         _repo.Verify(r => r.AddAsync(It.IsAny<Place>()), Times.Never);
     }
@@ -124,7 +124,7 @@ public class PlaceServiceTests
     public async Task CreateAsync_InvalidOptionalFields_ThrowsAndDoesNotSave(
         int? priceMin, int? priceMax, double? latitude, double? longitude, string? imageUrl)
     {
-        var dto = new CreatePlaceDto("Tên", "Mô tả",
+        var dto = new PlaceInputDto("Tên", "Mô tả",
             PriceMin: priceMin, PriceMax: priceMax,
             ImageUrl: imageUrl, Latitude: latitude, Longitude: longitude);
 
@@ -136,7 +136,7 @@ public class PlaceServiceTests
     [Fact]
     public async Task CreateAsync_NameTooLong_ThrowsAndDoesNotSave()
     {
-        var dto = new CreatePlaceDto(new string('a', PlaceService.MaxNameLength + 1), "Mô tả");
+        var dto = new PlaceInputDto(new string('a', PlaceService.MaxNameLength + 1), "Mô tả");
 
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
 
@@ -146,7 +146,7 @@ public class PlaceServiceTests
     [Fact]
     public async Task CreateAsync_DescriptionTooLong_ThrowsAndDoesNotSave()
     {
-        var dto = new CreatePlaceDto("Tên", new string('a', PlaceService.MaxDescriptionLength + 1));
+        var dto = new PlaceInputDto("Tên", new string('a', PlaceService.MaxDescriptionLength + 1));
 
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
 
@@ -159,7 +159,7 @@ public class PlaceServiceTests
         _repo.Setup(r => r.AddAsync(It.IsAny<Place>())).ReturnsAsync((Place p) => p);
 
         var result = await _service.CreateAsync(
-            new CreatePlaceDto(new string('a', PlaceService.MaxNameLength), "Mô tả"));
+            new PlaceInputDto(new string('a', PlaceService.MaxNameLength), "Mô tả"));
 
         Assert.Equal(PlaceService.MaxNameLength, result.Name.Length);
     }
@@ -170,7 +170,7 @@ public class PlaceServiceTests
         var place = new Place { Id = 1, Name = "Cũ", Description = "cũ" };
         _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
 
-        var result = await _service.UpdateAsync(1, new UpdatePlaceDto("Mới", "mới"));
+        var result = await _service.UpdateAsync(1, new PlaceInputDto("Mới", "mới"));
 
         Assert.NotNull(result);
         Assert.Equal("Mới", place.Name);
@@ -182,7 +182,7 @@ public class PlaceServiceTests
     {
         _repo.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((Place?)null);
 
-        var result = await _service.UpdateAsync(999, new UpdatePlaceDto("Mới", "mới"));
+        var result = await _service.UpdateAsync(999, new PlaceInputDto("Mới", "mới"));
 
         Assert.Null(result);
         _repo.Verify(r => r.UpdateAsync(It.IsAny<Place>()), Times.Never);
@@ -194,7 +194,7 @@ public class PlaceServiceTests
         var place = new Place { Id = 1, Name = "A", Description = "cũ" };
         _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
 
-        await _service.UpdateAsync(1, new UpdatePlaceDto("A", "mới"));
+        await _service.UpdateAsync(1, new PlaceInputDto("A", "mới"));
 
         _translations.Verify(t => t.DeleteByPlaceIdAsync(1), Times.Once);
     }
@@ -205,7 +205,7 @@ public class PlaceServiceTests
         var place = new Place { Id = 1, Name = "A", Description = "nội dung" };
         _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
 
-        await _service.UpdateAsync(1, new UpdatePlaceDto("B", "nội dung"));
+        await _service.UpdateAsync(1, new PlaceInputDto("B", "nội dung"));
 
         _translations.Verify(t => t.DeleteByPlaceIdAsync(It.IsAny<int>()), Times.Never);
     }
@@ -247,7 +247,7 @@ public class PlaceServiceTests
     [InlineData("javascript:alert(1)", false)]
     public async Task CreateAsync_ImageUrl_AcceptsHttpOrUploadedPath(string url, bool valid)
     {
-        var create = () => _service.CreateAsync(new CreatePlaceDto("A", "a", ImageUrl: url));
+        var create = () => _service.CreateAsync(new PlaceInputDto("A", "a", ImageUrl: url));
 
         if (valid)
             Assert.Equal(url, (await create()).ImageUrl);

@@ -8,6 +8,8 @@ namespace AudioGuide.Business.Services;
 
 public class AuthService : IAuthService
 {
+    private static readonly string DummyHash = BCrypt.Net.BCrypt.HashPassword("dummy-password");
+
     private readonly IUserRepository _users;
     private readonly ITokenService _tokens;
 
@@ -41,7 +43,9 @@ public class AuthService : IAuthService
         var username = (dto.Username ?? string.Empty).Trim().ToLowerInvariant();
         var user = await _users.GetByUsernameAsync(username);
 
-        if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password ?? string.Empty, user.PasswordHash))
+        // Luôn chạy BCrypt, kể cả khi không có user, để thời gian phản hồi không lộ tên đăng nhập nào tồn tại
+        var valid = BCrypt.Net.BCrypt.Verify(dto.Password ?? string.Empty, user?.PasswordHash ?? DummyHash);
+        if (user is null || !valid)
             return null;
 
         return ToResponse(user);

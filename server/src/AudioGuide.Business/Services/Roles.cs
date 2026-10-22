@@ -1,4 +1,4 @@
-namespace AudioGuide.Data.Entities;
+namespace AudioGuide.Business.Services;
 
 public static class Roles
 {
