@@ -21,6 +21,20 @@ public class ListenerServiceTests
     }
 
     [Fact]
+    public void Heartbeat_RemovesExpiredDevices_EvenWhenNobodyReadsStats()
+    {
+        _service.Heartbeat(new ListenerHeartbeatDto("old", 1, "vi"));
+        _time.Now = _time.Now.AddSeconds(ListenerService.TimeoutSeconds + 1);
+
+        _service.Heartbeat(new ListenerHeartbeatDto("new", 1, "vi"));
+
+        var sessions = (System.Collections.IDictionary)typeof(ListenerService)
+            .GetField("_sessions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .GetValue(_service)!;
+        Assert.Equal(1, sessions.Count);
+    }
+
+    [Fact]
     public void FourDevices_CountsFour()
     {
         _service.Heartbeat(new ListenerHeartbeatDto("a", 1, "vi"));

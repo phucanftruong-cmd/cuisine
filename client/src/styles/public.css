@@ -1850,3 +1850,174 @@ body:has(.site) {
     transition: none !important;
   }
 }
+
+/* ---- Ảnh món ăn ở trang chi tiết ---- */
+.tv-dishes {
+  margin-top: 32px;
+}
+
+.tv-dishes h2 {
+  margin: 0 0 14px;
+  font-size: 1.3rem;
+}
+
+.tv-dishes-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .tv-dishes-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+.tv-dishes figure {
+  margin: 0;
+}
+
+.site .tv-dish-btn {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--c-primary-soft);
+  cursor: zoom-in;
+}
+
+.site .tv-dish-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.tv-dish-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.tv-dish-btn:hover img {
+  transform: scale(1.04);
+}
+
+.tv-dishes figcaption {
+  margin-top: 6px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.tv-lightbox {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 56px 12px 16px;
+  border: none;
+  background: rgba(10, 16, 20, 0.92);
+  color: #fff;
+}
+
+.tv-lightbox::backdrop {
+  background: rgba(10, 16, 20, 0.6);
+}
+
+.tv-lightbox[open] {
+  display: grid;
+  place-items: center;
+}
+
+.tv-lightbox-body {
+  margin: 0;
+  max-width: min(1000px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-lightbox-body img {
+  max-width: 100%;
+  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.tv-lightbox-body figcaption {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.tv-lightbox-count {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.site .tv-lightbox-btn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+
+.site .tv-lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.site .tv-lightbox-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.tv-lightbox-close {
+  top: 8px;
+  right: 8px;
+}
+
+.tv-lightbox-prev,
+.tv-lightbox-next {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tv-lightbox-prev {
+  left: 8px;
+}
+
+.tv-lightbox-next {
+  right: 8px;
+}
+
+@media (max-width: 639px) {
+  .tv-lightbox {
+    padding-bottom: 68px;
+  }
+
+  .tv-lightbox-prev,
+  .tv-lightbox-next {
+    top: auto;
+    bottom: 12px;
+    transform: none;
+  }
+}

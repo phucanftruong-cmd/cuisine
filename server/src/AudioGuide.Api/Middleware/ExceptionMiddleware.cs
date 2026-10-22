@@ -30,6 +30,12 @@ public class ExceptionMiddleware
             context.Response.StatusCode = StatusCodes.Status409Conflict;
             await context.Response.WriteAsJsonAsync(new { error = ex.Message });
         }
+        catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            // Request vượt RequestSizeLimit (ví dụ tải ảnh quá lớn)
+            context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            await context.Response.WriteAsJsonAsync(new { error = "File quá lớn." });
+        }
         catch (TranslationProviderException ex)
         {
             _logger.LogError(ex, "Dịch vụ dịch bị lỗi");

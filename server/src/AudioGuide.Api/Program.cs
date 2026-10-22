@@ -1,26 +1,24 @@
 using System.Security.Claims;
 using System.Text;
 using AudioGuide.Api.Middleware;
+using AudioGuide.Api.RateLimiting;
 using AudioGuide.Business.Providers;
 using AudioGuide.Business.Services;
 using AudioGuide.Data;
 using AudioGuide.Data.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Cấu hình JWT (khóa lấy từ user-secrets hoặc biến môi trường, không ghi trong code)
-var jwt = new JwtOptions
-{
-    Key = builder.Configuration["Jwt:Key"]
-          ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README)."),
-    Issuer = builder.Configuration["Jwt:Issuer"] ?? "AudioGuide",
-    Audience = builder.Configuration["Jwt:Audience"] ?? "AudioGuide.Client",
-    ExpiresMinutes = int.TryParse(builder.Configuration["Jwt:ExpiresMinutes"], out var minutes) ? minutes : 60
-};
+var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
+          ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README).");
+if (string.IsNullOrEmpty(jwt.Key))
+    throw new InvalidOperationException("Thiếu cấu hình Jwt:Key (xem README).");
 if (jwt.Key.Length < 32)
     throw new InvalidOperationException("Jwt:Key phải dài ít nhất 32 ký tự.");
 builder.Services.AddSingleton(jwt);
@@ -34,6 +32,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Dependency Injection: interface -> implementation
 builder.Services.AddScoped<IPlaceRepository, PlaceRepository>();
 builder.Services.AddScoped<IPlaceService, PlaceService>();
+
+// Ảnh món ăn: file lưu trong thư mục uploads (đổi chỗ bằng cấu hình Uploads:Path)
+var uploadsPath = Path.GetFullPath(
+    builder.Configuration["Uploads:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "uploads"));
+Directory.CreateDirectory(uploadsPath);
+builder.Services.AddSingleton<IImageStorage>(new LocalImageStorage(uploadsPath));
+builder.Services.AddScoped<IPlaceImageRepository, PlaceImageRepository>();
+builder.Services.AddScoped<IPlaceImageService, PlaceImageService>();
 
 builder.Services.AddScoped<ITranslationRepository, TranslationRepository>();
 builder.Services.AddScoped<IPlaceTranslationService, PlaceTranslationService>();
@@ -81,6 +87,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -113,7 +120,20 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 app.UseCors("Frontend");
+
+// Phục vụ ảnh đã tải lên tại /uploads. Tên file là GUID, không bao giờ đổi nội dung nên cho cache lâu.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public, max-age=604800, immutable";
+        ctx.Context.Response.Headers.XContentTypeOptions = "nosniff";
+    }
+});
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

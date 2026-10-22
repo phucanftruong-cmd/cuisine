@@ -1646,3 +1646,129 @@ a.ledger-cell:hover {
     padding: 0;
   }
 }
+
+/* ---- Ảnh món ăn (form sửa quán) ---- */
+.gallery-panel .surface-head h2 .tag {
+  font-weight: 500;
+}
+
+.gallery-grid {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.gallery-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--ad-line);
+  border-radius: 10px;
+  background: #faf8f5;
+  min-width: 0;
+}
+
+.gallery-item.is-cover {
+  border-color: var(--ad-accent);
+  box-shadow: 0 0 0 1px var(--ad-accent);
+}
+
+.gallery-item[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.gallery-thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #efebe5;
+}
+
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-thumb--pending {
+  display: grid;
+  place-items: center;
+  color: var(--ad-muted);
+}
+
+.gallery-item--error .gallery-thumb--pending {
+  color: var(--ad-danger);
+}
+
+.gallery-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ad-accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.gallery-caption {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.gallery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.gallery-actions .admin-icon-button--danger {
+  margin-left: auto;
+}
+
+/* Nút đặt ảnh bìa xuống dòng riêng cho khỏi chen các nút biểu tượng */
+.admin-shell .gallery-cover-btn {
+  order: 1;
+  flex-basis: 100%;
+  justify-content: flex-start;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+}
+
+.gallery-upload-name {
+  margin: 0;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-item .field-hint,
+.gallery-item .field-error {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.gallery-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--ad-line-strong);
+  border-top-color: var(--ad-accent);
+  border-radius: 50%;
+  animation: gallery-spin 0.8s linear infinite;
+}
+
+@keyframes gallery-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

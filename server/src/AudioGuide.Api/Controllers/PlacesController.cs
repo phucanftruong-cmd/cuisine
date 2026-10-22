@@ -1,6 +1,5 @@
 using AudioGuide.Business.Dtos;
 using AudioGuide.Business.Services;
-using AudioGuide.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,7 +33,7 @@ public class PlacesController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<ActionResult<PlaceDto>> Create(CreatePlaceDto dto)
+    public async Task<ActionResult<PlaceDto>> Create(PlaceInputDto dto)
     {
         var created = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -42,7 +41,7 @@ public class PlacesController : ControllerBase
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<ActionResult<PlaceDto>> Update(int id, UpdatePlaceDto dto)
+    public async Task<ActionResult<PlaceDto>> Update(int id, PlaceInputDto dto)
     {
         var updated = await _service.UpdateAsync(id, dto);
         return updated is null ? NotFound() : Ok(updated);

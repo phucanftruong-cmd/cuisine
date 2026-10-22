@@ -73,6 +73,35 @@ namespace AudioGuide.Data.Migrations
                     b.ToTable("Places");
                 });
 
+            modelBuilder.Entity("AudioGuide.Data.Entities.PlaceImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Caption")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId", "SortOrder");
+
+                    b.ToTable("PlaceImages");
+                });
+
             modelBuilder.Entity("AudioGuide.Data.Entities.Translation", b =>
                 {
                     b.Property<int>("Id")
@@ -130,6 +159,17 @@ namespace AudioGuide.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("AudioGuide.Data.Entities.PlaceImage", b =>
+                {
+                    b.HasOne("AudioGuide.Data.Entities.Place", "Place")
+                        .WithMany("Images")
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
+                });
+
             modelBuilder.Entity("AudioGuide.Data.Entities.Translation", b =>
                 {
                     b.HasOne("AudioGuide.Data.Entities.Place", "Place")
@@ -139,6 +179,11 @@ namespace AudioGuide.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("AudioGuide.Data.Entities.Place", b =>
+                {
+                    b.Navigation("Images");
                 });
 #pragma warning restore 612, 618
         }
