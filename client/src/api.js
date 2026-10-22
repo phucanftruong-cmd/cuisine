@@ -1,5 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5295";
 
+// Ảnh tải lên server có đường dẫn tương đối (/uploads/...): nối địa chỉ API vào. Link ngoài giữ nguyên.
+export function mediaUrl(url) {
+  const value = url?.trim();
+  return value?.startsWith("/") && !value.startsWith("//") ? `${API_URL}${value}` : value;
+}
+
 // Lỗi từ API, kèm mã HTTP để giao diện xử lý riêng (401, 403, 404...)
 export class ApiError extends Error {
   constructor(message, status) {
@@ -31,7 +37,8 @@ function errorMessage(status, data) {
 }
 
 async function request(path, { token, ...options } = {}) {
-  const headers = options.body ? { "Content-Type": "application/json" } : {};
+  // FormData (tải file) để trình duyệt tự đặt Content-Type kèm boundary
+  const headers = typeof options.body === "string" ? { "Content-Type": "application/json" } : {};
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -97,6 +104,23 @@ export const updatePlace = (token, id, place) =>
   request(`/api/Places/${id}`, { method: "PUT", token, body: JSON.stringify(place) });
 export const deletePlace = (token, id) =>
   request(`/api/Places/${id}`, { method: "DELETE", token });
+
+// Ảnh món ăn. Mọi thao tác trả về { coverUrl, images } mới nhất của quán
+export const getPlaceImages = (id) => request(`/api/places/${id}/images`);
+export function uploadPlaceImage(token, id, file, caption) {
+  const body = new FormData();
+  body.append("file", file);
+  if (caption) body.append("caption", caption);
+  return request(`/api/places/${id}/images`, { method: "POST", token, body });
+}
+export const updatePlaceImage = (token, id, imageId, caption) =>
+  request(`/api/places/${id}/images/${imageId}`, { method: "PUT", token, body: JSON.stringify({ caption }) });
+export const reorderPlaceImages = (token, id, imageIds) =>
+  request(`/api/places/${id}/images/order`, { method: "PUT", token, body: JSON.stringify({ imageIds }) });
+export const setPlaceCover = (token, id, imageId) =>
+  request(`/api/places/${id}/images/${imageId}/cover`, { method: "PUT", token });
+export const deletePlaceImage = (token, id, imageId) =>
+  request(`/api/places/${id}/images/${imageId}`, { method: "DELETE", token });
 
 // Bản dịch đã lưu (chỉ Admin)
 export const getCachedTranslations = (token, id) =>

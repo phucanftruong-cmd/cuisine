@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Place> Places => Set<Place>();
     public DbSet<Translation> Translations => Set<Translation>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<PlaceImage> PlaceImages => Set<PlaceImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +25,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
             .IsUnique();
+
+        // Xóa quán thì xóa luôn các ảnh món của quán
+        modelBuilder.Entity<PlaceImage>()
+            .HasOne(i => i.Place)
+            .WithMany(p => p.Images)
+            .HasForeignKey(i => i.PlaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PlaceImage>()
+            .HasIndex(i => new { i.PlaceId, i.SortOrder });
     }
 }

@@ -50,6 +50,9 @@ test("link ảnh", () => {
   assert.ok(m.validatePlaceForm({ ...ok, imageUrl: "ftp://a.com/x.png" }).imageUrl);
   assert.ok(m.validatePlaceForm({ ...ok, imageUrl: "not a url" }).imageUrl);
   assert.deepEqual(m.validatePlaceForm({ ...ok, imageUrl: "https://a.com/x.png" }), {});
+  assert.deepEqual(m.validatePlaceForm({ ...ok, imageUrl: "/uploads/places/abc.jpg" }), {});
+  assert.ok(m.validatePlaceForm({ ...ok, imageUrl: "/uploads/places/../x.jpg" }).imageUrl);
+  assert.ok(m.validatePlaceForm({ ...ok, imageUrl: "/etc/passwd" }).imageUrl);
 });
 test("số điện thoại", () => {
   assert.deepEqual(m.validatePlaceForm({ ...ok, phone: "(028) 3855-1234" }), {});
@@ -71,4 +74,11 @@ test("toFormValues + isSameForm", () => {
   assert.ok(!("id" in v));
   assert.ok(m.isSameForm(v, { ...v, name: "A  " }));
   assert.ok(!m.isSameForm(v, { ...v, name: "B" }));
+});
+test("checkImageFile", () => {
+  const mb = 1024 * 1024;
+  assert.equal(m.checkImageFile({ type: "image/jpeg", size: mb }), "");
+  assert.ok(m.checkImageFile({ type: "image/gif", size: 10 }));
+  assert.ok(m.checkImageFile({ type: "image/png", size: 5 * mb + 1 }));
+  assert.ok(m.checkImageFile({ type: "image/webp", size: 0 }));
 });

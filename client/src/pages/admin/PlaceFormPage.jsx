@@ -6,6 +6,7 @@ import {
   getCachedTranslations,
   getPlace,
   getPlaceFilters,
+  mediaUrl,
   updatePlace,
 } from "../../api";
 import { useAuth } from "../../auth/useAuth";
@@ -15,8 +16,9 @@ import PlaceCard from "../../components/PlaceCard";
 import {
   EMPTY_FORM,
   LIMITS,
-  isHttpUrl,
+  isImageUrl,
   isSameForm,
+  isUploadedImage,
   parseCoordinate,
   parsePrice,
   splitCoordinatePair,
@@ -26,6 +28,7 @@ import {
 } from "../../utils/placeForm";
 import { PROFILE_ITEMS, isSamplePlace } from "../../utils/placeStatus";
 import AdminLayout from "./AdminLayout";
+import PlaceGalleryPanel from "./PlaceGalleryPanel";
 import { useToast } from "./toastContext";
 
 const LANGUAGE_NAMES = {
@@ -74,6 +77,7 @@ function useImageStatus(url) {
 function PlaceForm({ id }) {
   const isEdit = id !== undefined;
   const { token } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const listUrl = `/admin/places${location.state?.returnTo ?? ""}`;
@@ -112,7 +116,7 @@ function PlaceForm({ id }) {
   }, [id, isEdit]);
 
   const imageUrl = values.imageUrl.trim();
-  const imageStatus = useImageStatus(isHttpUrl(imageUrl) ? imageUrl : "");
+  const imageStatus = useImageStatus(isImageUrl(imageUrl) ? mediaUrl(imageUrl) : "");
 
   const loaded = original !== null;
   const dirty = loaded && !isSameForm(values, original);
@@ -146,6 +150,13 @@ function PlaceForm({ id }) {
     setValues((current) => ({ ...current, [name]: value }));
   }
 
+  // Ảnh bìa đổi qua mục "Ảnh món ăn" (đã lưu trên server): cập nhật cả giá trị gốc
+  // để form không coi là "chưa lưu", và để bấm "Lưu thay đổi" sau đó không ghi đè ảnh bìa cũ.
+  function handleCoverChange(url) {
+    setValues((current) => ({ ...current, imageUrl: url }));
+    setOriginal((current) => ({ ...current, imageUrl: url }));
+  }
+
   // Rời trang khi còn thay đổi chưa lưu thì hỏi lại
   function confirmLeave(event) {
     if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?")) {
@@ -172,8 +183,13 @@ function PlaceForm({ id }) {
       const payload = toPlacePayload(values);
       const saved = isEdit ? await updatePlace(token, id, payload) : await createPlace(token, payload);
       if (!saved) throw new Error("Không tìm thấy quán này, có thể đã bị xóa.");
-      const flash = isEdit ? `Đã lưu thay đổi của quán “${saved.name}”.` : `Đã thêm quán “${saved.name}”.`;
-      navigate(listUrl, { state: { flash } });
+      if (isEdit) {
+        navigate(listUrl, { state: { flash: `Đã lưu thay đổi của quán “${saved.name}”.` } });
+      } else {
+        // Quán mới: ở lại trang sửa để thêm ảnh món ngay
+        toast(`Đã thêm quán “${saved.name}”. Bạn có thể thêm ảnh món ăn ở bên dưới.`);
+        navigate(`/admin/places/${saved.id}/edit`, { replace: true, state: location.state });
+      }
     } catch (err) {
       setServerError(
         err.status === 404 ? "Không tìm thấy quán này, có thể đã bị người khác xóa." : err.message,
@@ -351,16 +367,35 @@ function PlaceForm({ id }) {
             </div>
           </fieldset>
 
+          {isEdit ? (
+            <PlaceGalleryPanel placeId={id} token={token} onCoverChange={handleCoverChange} />
+          ) : (
+            <section className="surface form-section">
+              <h2>
+                <Icon name="image" /> Ảnh món ăn
+              </h2>
+              <p className="field-hint">
+                Bấm “Thêm quán” trước, sau đó trang này chuyển sang chế độ sửa để bạn tải ảnh món ăn từ máy lên.
+              </p>
+            </section>
+          )}
+
           <fieldset className="surface form-section">
-            <legend>Ảnh quán</legend>
+            <legend>Ảnh bìa</legend>
             <Field
-              label="Link ảnh"
+              label="Link ảnh bìa"
               name="imageUrl"
               error={errors.imageUrl}
-              hint={<ImageStatusHint status={imageStatus} />}
+              hint={
+                isUploadedImage(imageUrl) && imageStatus !== "loading" ? (
+                  "Đang dùng một ảnh món đã tải lên làm ảnh bìa. Đổi ảnh bìa ở mục “Ảnh món ăn”, hoặc dán link ảnh khác vào đây."
+                ) : (
+                  <ImageStatusHint status={imageStatus} />
+                )
+              }
             >
               <div className="input-group">
-                <input {...fieldProps("imageUrl")} type="url" maxLength={LIMITS.imageUrl} placeholder="https://…/anh-quan.jpg" />
+                <input {...fieldProps("imageUrl")} inputMode="url" maxLength={LIMITS.imageUrl} placeholder="https://…/anh-quan.jpg" />
                 {values.imageUrl && (
                   <button
                     type="button"

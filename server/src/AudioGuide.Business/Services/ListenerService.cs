@@ -32,6 +32,8 @@ public class ListenerService : IListenerService
             ?? throw new ArgumentException(
                 $"Ngôn ngữ không được hỗ trợ. Chọn một trong: {string.Join(", ", SupportedLanguages)}.");
 
+        // Endpoint công khai: dọn ngay ở đây để thiết bị lạ không làm phình bộ nhớ khi chưa ai xem thống kê
+        RemoveExpired();
         _sessions[deviceId] = new Session(dto.PlaceId, lang, _time.GetUtcNow());
     }
 

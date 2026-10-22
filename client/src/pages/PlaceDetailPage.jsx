@@ -5,6 +5,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import { getPlaceText } from "../audio/placeText";
 import { useAudio } from "../audio/useAudio";
 import { useAuth } from "../auth/useAuth";
+import DishGallery from "../components/DishGallery";
 import Icon from "../components/Icon";
 import PlaceArt from "../components/PlaceArt";
 import PlaceCard from "../components/PlaceCard";
@@ -173,6 +174,7 @@ function PlaceView({ place }) {
             <div id="audio-guide">
               <AudioPlayer place={place} />
             </div>
+            <DishGallery placeId={place.id} placeName={place.name} />
           </div>
 
           <aside className="tv-detail-side" aria-labelledby="location-title">

@@ -120,7 +120,7 @@ Rồi chạy:
 docker compose up --build
 ```
 
-Mở http://localhost:8080/scalar/v1. Database và ảnh tải lên được giữ trong Docker volume nên không mất khi khởi động lại.
+Mở http://localhost:8080/scalar/v1. Database và ảnh món đã tải lên được giữ trong Docker volume nên không mất khi khởi động lại.
 
 Nếu volume được tạo từ bản cũ (container chạy bằng root) và server báo không ghi được vào `/data`, xóa volume rồi chạy lại: `docker compose down -v && docker compose up --build` (mất dữ liệu cũ trong volume).
 

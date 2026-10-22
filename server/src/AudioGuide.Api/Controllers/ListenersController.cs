@@ -1,8 +1,9 @@
+using AudioGuide.Api.RateLimiting;
 using AudioGuide.Business.Dtos;
 using AudioGuide.Business.Services;
-using AudioGuide.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AudioGuide.Api.Controllers;
 
@@ -19,6 +20,7 @@ public class ListenersController : ControllerBase
 
     // Trang quán gọi lặp lại khi đang phát thuyết minh
     [HttpPost("heartbeat")]
+    [EnableRateLimiting(RateLimitPolicies.Heartbeat)]
     public IActionResult Heartbeat(ListenerHeartbeatDto dto)
     {
         _service.Heartbeat(dto);
