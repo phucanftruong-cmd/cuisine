@@ -1,0 +1,293 @@
+/* Trang Tổng quan: số liệu nhanh, bản đồ, biểu đồ */
+
+/* ---- Số liệu nhanh: một dải chia ô, không phải bốn thẻ rời ---- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--ad-line);
+  border-bottom: 1px solid var(--ad-line);
+  margin: 0 -1px -1px 0;
+  color: inherit;
+}
+
+a.kpi:hover {
+  background: #faf8f5;
+}
+
+.kpi-label {
+  font-size: 0.86rem;
+  color: var(--ad-muted);
+}
+
+.kpi-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.kpi-note {
+  font-size: 0.82rem;
+  color: var(--ad-muted);
+}
+
+/* ---- Hai cột bằng nhau, lưới ba cột ---- */
+.dashboard-columns--even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+/* ---- Quán mới thêm ---- */
+.recent-name {
+  font-weight: 600;
+  color: var(--ad-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-name:hover {
+  color: var(--ad-accent);
+  text-decoration: underline;
+}
+
+.recent-time {
+  flex-shrink: 0;
+  font-size: 0.84rem;
+  color: var(--ad-muted);
+}
+
+/* ---- Thanh ngang: dòng "chưa có" mờ hơn ---- */
+.bars li.is-empty .bar-label,
+.bars li.is-empty .bar-value {
+  color: var(--ad-muted);
+}
+
+.bars li.is-empty .bar-fill {
+  background: #cdbfb1;
+}
+
+/* ---- Bản đồ ---- */
+.places-map {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--ad-line);
+  background: #e8e4dc;
+  user-select: none;
+}
+
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  pointer-events: none;
+}
+
+.map-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(36, 22, 14, 0.45);
+  z-index: 2;
+}
+
+.map-marker--done {
+  background: var(--ad-ok);
+}
+
+.map-marker--todo {
+  background: #d9a24a;
+}
+
+.map-marker:hover,
+.map-marker:focus-visible {
+  z-index: 3;
+  transform: scale(1.2);
+}
+
+.map-marker-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--ad-sidebar);
+  color: var(--ad-sidebar-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-marker:hover .map-marker-label,
+.map-marker:focus-visible .map-marker-label {
+  opacity: 1;
+}
+
+.map-zoom {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(36, 22, 14, 0.3);
+}
+
+.admin-shell .map-zoom button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ad-ink);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.admin-shell .map-zoom button + button {
+  border-top: 1px solid var(--ad-line);
+}
+
+.admin-shell .map-zoom button:hover:not(:disabled) {
+  background: #f1eee9;
+}
+
+.map-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #444;
+  font-size: 0.72rem;
+}
+
+.places-map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--ad-muted);
+}
+
+.map-caption {
+  margin-top: 8px;
+}
+
+/* ---- Biểu đồ giờ mở cửa ---- */
+.hours-chart {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 4px;
+  margin: 4px 0 8px;
+  padding: 0;
+}
+
+.hours-chart li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.hours-bar-wrap {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 140px;
+  border-radius: 4px;
+  background: #f4f0ea;
+}
+
+.hours-bar {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: #8a5a3c;
+}
+
+.hours-bar.is-peak {
+  background: var(--ad-accent);
+}
+
+.hours-label {
+  font-size: 0.72rem;
+  color: var(--ad-muted);
+}
+
+.hours-label.is-minor {
+  visibility: hidden;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-columns--even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .kpi {
+    padding: 12px 14px;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .hours-chart {
+    gap: 2px;
+  }
+
+  .hours-bar-wrap {
+    height: 110px;
+  }
+
+  .hours-label {
+    font-size: 0.65rem;
+  }
+
+  .hours-label.is-minor {
+    display: none;
+  }
+}
+
+/* Tiêu đề khối và liên kết bên phải tự xuống dòng khi hẹp */
+.surface-head {
+  flex-wrap: wrap;
+}
+
+/* Cột nhãn của thanh ngang rộng hơn để không cắt chữ trong khối hẹp */
+.dashboard-grid .bars li {
+  grid-template-columns: minmax(0, 1.2fr) minmax(48px, 1fr) 28px;
+}
