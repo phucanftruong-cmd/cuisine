@@ -18,8 +18,12 @@ public class PlacesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<PlaceDto>>> GetAll() =>
-        Ok(await _service.GetAllAsync());
+    public async Task<ActionResult<PagedResultDto<PlaceDto>>> Search([FromQuery] PlaceQueryDto query) =>
+        Ok(await _service.SearchAsync(query));
+
+    [HttpGet("filters")]
+    public async Task<ActionResult<PlaceFiltersDto>> GetFilters() =>
+        Ok(await _service.GetFiltersAsync());
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PlaceDto>> GetById(int id)

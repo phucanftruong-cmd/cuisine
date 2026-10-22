@@ -95,6 +95,12 @@ using (var scope = app.Services.CreateScope())
         var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
         await auth.SeedAdminAsync(adminUsername, adminPassword);
     }
+    var seedSamples = app.Configuration.GetValue<bool?>("Seed:SamplePlaces") ?? app.Environment.IsDevelopment();
+    if (seedSamples)
+    {
+        var placeService = scope.ServiceProvider.GetRequiredService<IPlaceService>();
+        await placeService.SeedSampleDataAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())

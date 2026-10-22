@@ -14,7 +14,18 @@ async function request(path, { token, ...options } = {}) {
   return data;
 }
 
-export const getPlaces = () => request("/api/Places");
+export function getPlaces(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, value);
+    }
+  });
+  const qs = query.toString();
+  return request(`/api/Places${qs ? `?${qs}` : ""}`);
+}
+
+export const getPlaceFilters = () => request("/api/Places/filters");
 export const getPlace = (id) => request(`/api/Places/${id}`);
 export const getTranslation = (id, lang) =>
   request(`/api/places/${id}/translations/${lang}`);
