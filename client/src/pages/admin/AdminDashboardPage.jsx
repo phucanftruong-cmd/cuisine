@@ -23,6 +23,8 @@ import {
 } from "../../utils/placeStatus";
 import { useBrokenImages } from "../../utils/useBrokenImages";
 import AdminLayout from "./AdminLayout";
+import LiveListeners from "./LiveListeners";
+import QrCard from "./QrCard";
 import "./dashboard.css";
 
 const TODO_LIMIT = 5;
@@ -94,6 +96,11 @@ export default function AdminDashboardPage() {
           </button>
         </div>
       )}
+
+      <div className="live-row">
+        <LiveListeners places={places} />
+        <QrCard />
+      </div>
 
       {!summary && !error && <DashboardSkeleton />}
 

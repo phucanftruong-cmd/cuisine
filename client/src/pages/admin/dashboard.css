@@ -291,3 +291,215 @@ a.kpi:hover {
 .dashboard-grid .bars li {
   grid-template-columns: minmax(0, 1.2fr) minmax(48px, 1fr) 28px;
 }
+
+/* ---- Đang nghe thuyết minh (trực tiếp) + mã QR: một hàng gọn ---- */
+.live-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.live.surface,
+.qr.surface {
+  padding: 14px 18px;
+}
+
+.live .surface-head {
+  margin-bottom: 10px;
+}
+
+.live-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.live-count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--ad-ok-bg);
+  color: var(--ad-ok);
+}
+
+.live-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  animation: live-bump 0.45s ease-out;
+}
+
+.live-unit {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@keyframes live-bump {
+  from {
+    transform: scale(1.25);
+    opacity: 0.4;
+  }
+}
+
+.live-dot--off {
+  background: var(--ad-muted);
+  animation: none;
+}
+
+.live-detail .muted {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.live-detail .bars {
+  margin: 0;
+  gap: 4px;
+}
+
+/* Tên quán rộng hơn thanh: ở đây tên quan trọng hơn độ dài thanh */
+.live-detail .bars li {
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) 24px;
+  font-size: 0.88rem;
+}
+
+.live-more {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--ad-muted);
+}
+
+.live-langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.live-langs li {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--ad-bg);
+  border: 1px solid var(--ad-line);
+  font-size: 0.8rem;
+}
+
+/* QR: ảnh bên trái, link bên phải */
+.qr {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.qr h2 {
+  margin-bottom: 6px;
+}
+
+.admin-shell .qr-image {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--ad-line);
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
+.qr-image img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.qr-url {
+  display: flex;
+  gap: 6px;
+}
+
+.qr-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--ad-line-strong);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.qr-hint {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--ad-muted);
+}
+
+.qr-hint--warn {
+  color: var(--ad-todo);
+}
+
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(20, 16, 12, 0.88);
+  color: #fff;
+  cursor: zoom-out;
+}
+
+.qr-overlay img {
+  width: min(80vmin, 640px);
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  image-rendering: pixelated;
+}
+
+.qr-overlay p {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  word-break: break-all;
+  text-align: center;
+}
+
+.qr-overlay-hint {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+@media (max-width: 960px) {
+  .live-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .live-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .live-count {
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-value {
+    animation: none;
+  }
+}
