@@ -524,11 +524,14 @@ body:has(.site) {
   overflow: hidden;
 }
 
-.tv-hero-art svg {
+.tv-hero-art img {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 380px;
+  aspect-ratio: 480 / 380;
+  object-fit: cover;
+  /* bám đáy ảnh để cắt bớt chữ in sẵn ở phía trên */
+  object-position: center bottom;
 }
 
 @media (min-width: 900px) {
