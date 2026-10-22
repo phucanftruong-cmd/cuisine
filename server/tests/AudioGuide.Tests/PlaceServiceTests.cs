@@ -130,6 +130,37 @@ public class PlaceServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_NameTooLong_ThrowsAndDoesNotSave()
+    {
+        var dto = new CreatePlaceDto(new string('a', PlaceService.MaxNameLength + 1), "Mô tả");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+
+        _repo.Verify(r => r.AddAsync(It.IsAny<Place>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_DescriptionTooLong_ThrowsAndDoesNotSave()
+    {
+        var dto = new CreatePlaceDto("Tên", new string('a', PlaceService.MaxDescriptionLength + 1));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+
+        _repo.Verify(r => r.AddAsync(It.IsAny<Place>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_MaxLengthName_IsAccepted()
+    {
+        _repo.Setup(r => r.AddAsync(It.IsAny<Place>())).ReturnsAsync((Place p) => p);
+
+        var result = await _service.CreateAsync(
+            new CreatePlaceDto(new string('a', PlaceService.MaxNameLength), "Mô tả"));
+
+        Assert.Equal(PlaceService.MaxNameLength, result.Name.Length);
+    }
+
+    [Fact]
     public async Task UpdateAsync_Found_UpdatesFields()
     {
         var place = new Place { Id = 1, Name = "Cũ", Description = "cũ" };

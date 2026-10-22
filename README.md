@@ -1,13 +1,18 @@
-# Thuyết minh tự động đa ngôn ngữ - Backend
+# Thuyết minh tự động đa ngôn ngữ - Ẩm thực Quận 6
 
 [![CI](https://github.com/phucanftruong-cmd/cuisine/actions/workflows/ci.yml/badge.svg)](https://github.com/phucanftruong-cmd/cuisine/actions/workflows/ci.yml)
 
-Backend ASP.NET Core theo kiến trúc 3 lớp, có CI bằng GitHub Actions.
+Backend ASP.NET Core theo kiến trúc 3 lớp, frontend React (Vite), có CI bằng GitHub Actions.
 
 ## Cấu trúc
 
 ```
-client/   Frontend (chưa làm)
+client/   Frontend React + Vite
+  src/
+    pages/              Trang khách: danh sách quán, chi tiết quán, đăng nhập
+    pages/admin/        Trang quản trị: danh sách quán, form thêm/sửa
+    auth/               Lưu phiên đăng nhập, chặn trang admin
+    utils/placeForm.js  Kiểm tra dữ liệu form (kèm unit test)
 server/
   src/
     AudioGuide.Api/       Presentation: Controllers, Middleware, Program.cs
@@ -21,7 +26,7 @@ Phụ thuộc một chiều: Api → Business → Data.
 
 ## Công nghệ
 
-.NET 10, ASP.NET Core Web API, EF Core + SQLite, xUnit, Moq, Scalar (tài liệu API), GitHub Actions.
+.NET 10, ASP.NET Core Web API, EF Core + SQLite, xUnit, Moq, Scalar (tài liệu API), React 19, React Router, Vite, GitHub Actions.
 
 ## Chạy local
 
@@ -30,14 +35,36 @@ cd server
 dotnet run --project src/AudioGuide.Api
 ```
 
-Mở http://localhost:5295/scalar/v1 để thử API. Database SQLite tự tạo khi khởi động.
+Mở http://localhost:5295/scalar/v1 để thử API. Database SQLite tự tạo khi khởi động. Lần đầu chạy cần cấu hình `Jwt:Key` và tài khoản admin (xem phần [Xác thực và phân quyền](#xác-thực-và-phân-quyền-jwt)), nếu không server sẽ báo thiếu `Jwt:Key`.
+
+Frontend (mở terminal khác):
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Mở http://localhost:5173. File `client/.env.development` trỏ frontend tới API ở `http://localhost:5295`.
 
 ## Chạy test
 
 ```bash
 cd server
 dotnet test
+
+cd ../client
+npm test
 ```
+
+## Trang quản trị
+
+Vào http://localhost:5173/admin (hoặc bấm **Đăng nhập** trên thanh đầu trang) và đăng nhập bằng tài khoản admin.
+
+- **Danh sách quán** (`/admin`): tìm không dấu, lọc theo loại món và phường, phân trang 10 quán mỗi trang. Mỗi quán có nút Xem, Sửa, Xóa (xóa có hộp thoại xác nhận).
+- **Thêm / sửa quán** (`/admin/places/new`, `/admin/places/{id}/edit`): form chia nhóm, kiểm tra dữ liệu ngay trên trình duyệt theo đúng luật của backend (bắt buộc, độ dài, giá, tọa độ, link ảnh). Có xem trước ảnh, dán cặp tọa độ copy từ Google Maps vào ô Vĩ độ là tự tách, cảnh báo khi rời trang mà chưa lưu.
+- **Bản dịch đã lưu**: ở trang sửa quán, xem các bản dịch đã cache và xóa để dịch lại.
+- Tài khoản thường (role `User`) không vào được trang quản trị. Token hết hạn thì tự đăng xuất và đưa về trang đăng nhập; đăng nhập lại sẽ quay về đúng trang đang làm.
 
 ## API hiện có
 
@@ -50,6 +77,16 @@ dotnet test
 | PUT | /api/Places/{id} | Cập nhật |
 | DELETE | /api/Places/{id} | Xóa |
 | GET | /api/places/{placeId}/translations/{lang} | Bản dịch của địa điểm (en, fr, ja, ko, zh-CN), có cache |
+| GET | /api/places/{placeId}/translations | Các bản dịch đã lưu của địa điểm (Admin) |
+| DELETE | /api/places/{placeId}/translations | Xóa bản dịch đã lưu để dịch lại (Admin) |
+| POST | /api/auth/register | Đăng ký tài khoản thường |
+| POST | /api/auth/login | Đăng nhập, trả về token |
+| GET | /api/auth/me | Thông tin tài khoản của token đang dùng |
+
+File `server/src/AudioGuide.Api/AudioGuide.Api.http` có sẵn request mẫu cho từng API (mở bằng Visual Studio, Rider hoặc VS Code + REST Client).
+
+Giới hạn dữ liệu khi thêm/sửa quán: tên tối đa 200 ký tự, nội dung thuyết minh 5.000, địa chỉ 300, phường/loại món/giờ mở cửa 100, số điện thoại 30, link ảnh 1.000. Lỗi không lường trước trả về `500` dạng `{ "error": "..." }` thay vì trang lỗi mặc định.
+
 ## Cấu hình dịch thuật
 
 Dịch vụ dịch dùng MyMemory (miễn phí, không cần API key). Để tăng hạn mức lên 50.000 ký tự mỗi ngày, lưu email vào user-secrets (không đưa vào code):
@@ -59,15 +96,20 @@ cd server
 dotnet user-secrets set "MyMemory:Email" "email-cua-ban@example.com" --project src/AudioGuide.Api
 ```
 
-Bản dịch được lưu vào database (cache). Khi nội dung gốc của địa điểm thay đổi, các bản dịch cũ của địa điểm đó tự bị xóa.
+Bản dịch được lưu vào database (cache). Khi nội dung gốc của địa điểm thay đổi, các bản dịch cũ của địa điểm đó tự bị xóa. Nếu hai người cùng lúc mở bản dịch chưa có, request lưu sau dùng lại bản đã lưu trước thay vì báo lỗi.
 
 ## Chạy bằng Docker
 
 Tạo file `.env` ở thư mục gốc (file này đã được `.gitignore` bỏ qua):
 
 ```
+JWT_KEY=chuoi-ngau-nhien-dai-it-nhat-32-ky-tu
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=mat-khau-cua-ban
 MYMEMORY_EMAIL=email-cua-ban@example.com
 ```
+
+`JWT_KEY` và `ADMIN_PASSWORD` là bắt buộc. Có thể tạo `JWT_KEY` bằng `openssl rand -base64 48`.
 
 Rồi chạy:
 
@@ -81,7 +123,7 @@ Mở http://localhost:8080/scalar/v1. Database được giữ trong Docker volum
 
 Workflow `.github/workflows/ci.yml` dùng GitHub Actions:
 
-- **CI** (mỗi push và Pull Request vào `main`): restore, build, chạy unit test.
+- **CI** (mỗi push và Pull Request vào `main`): backend restore, build, chạy unit test; frontend `npm ci`, `npm test`, `npm run build`.
 - **CD** (chỉ khi push vào `main` và test đã qua): build Docker image và đẩy lên GitHub Container Registry (`ghcr.io/phucanftruong-cmd/cuisine`) với hai tag là `latest` và mã commit.
 
 Quy trình làm việc: mỗi chức năng một nhánh `feature/...`, mở Pull Request vào `main`, CI phải xanh mới merge.
@@ -90,8 +132,9 @@ Quy trình làm việc: mỗi chức năng một nhánh `feature/...`, mở Pull
 
 - `POST /api/auth/register`: đăng ký tài khoản thường (role `User`), trả về token.
 - `POST /api/auth/login`: đăng nhập, trả về token JWT (hết hạn sau 60 phút).
+- `GET /api/auth/me`: kiểm tra token còn dùng được không, trả về tên đăng nhập và role.
 - Xem địa điểm và xem bản dịch: không cần đăng nhập.
-- Tạo, sửa, xóa địa điểm: chỉ role `Admin`. Gửi kèm header `Authorization: Bearer <token>`.
+- Tạo, sửa, xóa địa điểm, xem và xóa bản dịch đã lưu: chỉ role `Admin`. Gửi kèm header `Authorization: Bearer <token>`.
 
 Mật khẩu được băm bằng BCrypt. Cấu hình bí mật lưu bằng user-secrets (không đưa vào code):
 

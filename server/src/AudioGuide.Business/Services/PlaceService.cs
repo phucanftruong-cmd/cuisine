@@ -9,6 +9,14 @@ public class PlaceService : IPlaceService
     private const int MaxPageSize = 50;
     private const int MaxSearchTerms = 5;
 
+    // Giới hạn độ dài dữ liệu nhập (frontend dùng cùng các con số này)
+    public const int MaxNameLength = 200;
+    public const int MaxDescriptionLength = 5000;
+    public const int MaxShortTextLength = 300;
+    public const int MaxLabelLength = 100;
+    public const int MaxPhoneLength = 30;
+    public const int MaxUrlLength = 1000;
+
     private readonly IPlaceRepository _repo;
     private readonly ITranslationRepository _translations;
 
@@ -137,6 +145,15 @@ public class PlaceService : IPlaceService
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("Nội dung thuyết minh không được để trống.");
 
+        CheckLength(name, MaxNameLength, "Tên địa điểm");
+        CheckLength(description, MaxDescriptionLength, "Nội dung thuyết minh");
+        CheckLength(address, MaxShortTextLength, "Địa chỉ");
+        CheckLength(ward, MaxLabelLength, "Phường");
+        CheckLength(category, MaxLabelLength, "Loại món");
+        CheckLength(openingHours, MaxLabelLength, "Giờ mở cửa");
+        CheckLength(phone, MaxPhoneLength, "Số điện thoại");
+        CheckLength(imageUrl, MaxUrlLength, "Link ảnh");
+
         if (priceMin < 0 || priceMax < 0)
             throw new ArgumentException("Giá không được âm.");
         if (priceMin > priceMax)
@@ -158,6 +175,12 @@ public class PlaceService : IPlaceService
         return new PlaceFields(
             name.Trim(), description.Trim(), CleanText(address), CleanText(ward), CleanText(category),
             priceMin, priceMax, CleanText(openingHours), CleanText(phone), image, latitude, longitude);
+    }
+
+    private static void CheckLength(string? value, int max, string label)
+    {
+        if (value is not null && value.Trim().Length > max)
+            throw new ArgumentException($"{label} tối đa {max} ký tự.");
     }
 
     private static void Apply(Place place, PlaceFields f)

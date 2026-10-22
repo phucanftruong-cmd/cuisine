@@ -8,9 +8,9 @@ const PAGE_SIZE = 6;
 
 const PRICE_OPTIONS = [
   { value: "", label: "Mọi mức giá" },
-  { value: "30000", label: "Giá từ tối đa 30.000đ" },
-  { value: "50000", label: "Giá từ tối đa 50.000đ" },
-  { value: "100000", label: "Giá từ tối đa 100.000đ" },
+  { value: "30000", label: "Có món từ 30.000đ trở xuống" },
+  { value: "50000", label: "Có món từ 50.000đ trở xuống" },
+  { value: "100000", label: "Có món từ 100.000đ trở xuống" },
 ];
 
 export default function HomePage() {

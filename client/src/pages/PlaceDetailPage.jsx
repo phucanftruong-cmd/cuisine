@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { getPlace, getTranslation } from "../api";
+import { useAuth } from "../auth/useAuth";
 import { formatPrice } from "../utils/format";
 
 const LANGUAGES = [
@@ -19,6 +20,7 @@ export default function PlaceDetailPage() {
 }
 
 function PlaceDetail({ id }) {
+  const { isAdmin } = useAuth();
   const [place, setPlace] = useState(null);
   const [error, setError] = useState("");
   const [lang, setLang] = useState("vi");
@@ -73,9 +75,16 @@ function PlaceDetail({ id }) {
 
   return (
     <>
-      <Link to="/" className="back">
-        ← Quay lại danh sách
-      </Link>
+      <div className="detail-top">
+        <Link to="/" className="back">
+          ← Quay lại danh sách
+        </Link>
+        {isAdmin && (
+          <Link to={`/admin/places/${id}/edit`} className="action-link">
+            ✏️ Sửa quán này
+          </Link>
+        )}
+      </div>
 
       <article className="detail">
         {place.imageUrl && (

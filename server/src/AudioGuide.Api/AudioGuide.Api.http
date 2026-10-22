@@ -1,6 +1,67 @@
-@AudioGuide.Api_HostAddress = http://localhost:5295
+@host = http://localhost:5295
 
-GET {{AudioGuide.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Đăng nhập admin (tài khoản tạo từ user-secrets Admin:Username / Admin:Password).
+# Copy "token" trong kết quả vào biến @token bên dưới.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "mat-khau-cua-ban"
+}
 
 ###
+@token = dan-token-vao-day
+
+### Kiểm tra token
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Danh sách quán (tìm không dấu, lọc, phân trang)
+GET {{host}}/api/Places?search=pho&page=1&pageSize=10
+
+### Bộ lọc
+GET {{host}}/api/Places/filters
+
+### Chi tiết quán
+GET {{host}}/api/Places/1
+
+### Thêm quán (Admin)
+POST {{host}}/api/Places
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Hủ tiếu Nam Vang",
+  "description": "Quán hủ tiếu lâu đời, nước dùng ngọt thanh.",
+  "category": "Hủ tiếu",
+  "priceMin": 40000,
+  "priceMax": 70000,
+  "latitude": 10.7512,
+  "longitude": 106.6421
+}
+
+### Sửa quán (Admin)
+PUT {{host}}/api/Places/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Phở bò",
+  "description": "Nội dung thuyết minh mới."
+}
+
+### Xóa quán (Admin)
+DELETE {{host}}/api/Places/1
+Authorization: Bearer {{token}}
+
+### Dịch sang tiếng Anh (có cache)
+GET {{host}}/api/places/2/translations/en
+
+### Xem bản dịch đã lưu (Admin)
+GET {{host}}/api/places/2/translations
+Authorization: Bearer {{token}}
+
+### Xóa bản dịch đã lưu (Admin)
+DELETE {{host}}/api/places/2/translations
+Authorization: Bearer {{token}}

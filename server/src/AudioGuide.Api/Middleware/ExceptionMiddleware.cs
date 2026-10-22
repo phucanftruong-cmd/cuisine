@@ -36,5 +36,12 @@ public class ExceptionMiddleware
             context.Response.StatusCode = StatusCodes.Status502BadGateway;
             await context.Response.WriteAsJsonAsync(new { error = ex.Message });
         }
+        catch (Exception ex) when (!context.Response.HasStarted && !context.RequestAborted.IsCancellationRequested)
+        {
+            // Lỗi không lường trước: ghi log đầy đủ, chỉ trả cho client thông báo chung
+            _logger.LogError(ex, "Lỗi không xử lý được ở {Method} {Path}", context.Request.Method, context.Request.Path);
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { error = "Lỗi hệ thống, vui lòng thử lại sau." });
+        }
     }
 }
