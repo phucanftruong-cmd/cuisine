@@ -120,16 +120,9 @@ Rồi chạy:
 docker compose up --build
 ```
 
-Mở http://localhost:8080/scalar/v1. Database được giữ trong Docker volume nên không mất khi khởi động lại.
+Mở http://localhost:8080/scalar/v1. Database và ảnh tải lên được giữ trong Docker volume nên không mất khi khởi động lại.
 
-## CI/CD
-
-Workflow `.github/workflows/ci.yml` dùng GitHub Actions:
-
-- **CI** (mỗi push và Pull Request vào `main`): backend restore, build, chạy unit test; frontend `npm ci`, `npm test`, `npm run build`.
-- **CD** (chỉ khi push vào `main` và test đã qua): build Docker image và đẩy lên GitHub Container Registry (`ghcr.io/phucanftruong-cmd/cuisine`) với hai tag là `latest` và mã commit.
-
-Quy trình làm việc: mỗi chức năng một nhánh `feature/...`, mở Pull Request vào `main`, CI phải xanh mới merge.
+Nếu volume được tạo từ bản cũ (container chạy bằng root) và server báo không ghi được vào `/data`, xóa volume rồi chạy lại: `docker compose down -v && docker compose up --build` (mất dữ liệu cũ trong volume).
 
 ## Xác thực và phân quyền (JWT)
 
