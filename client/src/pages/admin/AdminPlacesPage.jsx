@@ -15,7 +15,6 @@ import { useToast } from "./toastContext";
 
 const PAGE_SIZE = 10;
 
-
 export default function AdminPlacesPage() {
   const { token } = useAuth();
   const toast = useToast();
@@ -34,6 +33,9 @@ export default function AdminPlacesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Bộ lọc gập lại cho gọn; tự mở khi đang có bộ lọc (vd. đi từ trang Tổng quan sang)
+  const [showFilters, setShowFilters] = useState(Boolean(category || ward || missing));
 
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -122,6 +124,7 @@ export default function AdminPlacesPage() {
   }
 
   const hasFilters = Boolean(search || category || ward || missing);
+  const activeFilters = [category, ward, missing].filter(Boolean).length;
   const returnState = { returnTo: location.search };
 
   return (
@@ -136,21 +139,34 @@ export default function AdminPlacesPage() {
       }
     >
       <div className="toolbar">
-        <form className="search-field" onSubmit={handleSearch} role="search">
-          <Icon name="search" />
-          <input
-            key={search}
-            name="search"
-            defaultValue={search}
-            placeholder="Tìm theo tên, món, địa chỉ… (gõ không dấu cũng được)"
-            aria-label="Tìm quán"
-          />
-          <button type="submit" className="btn btn-secondary btn-sm">
-            Tìm
+        <div className="toolbar-top">
+          <form className="search-field" onSubmit={handleSearch} role="search">
+            <Icon name="search" />
+            <input
+              key={search}
+              name="search"
+              defaultValue={search}
+              placeholder="Tìm theo tên, món, địa chỉ… (gõ không dấu cũng được)"
+              aria-label="Tìm quán"
+            />
+            <button type="submit" className="btn btn-secondary btn-sm">
+              Tìm
+            </button>
+          </form>
+          <button
+            type="button"
+            className={showFilters ? "btn btn-secondary is-active" : "btn btn-secondary"}
+            aria-expanded={showFilters}
+            aria-controls="places-filters"
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <Icon name="filter" />
+            Bộ lọc
+            {activeFilters > 0 && <span className="count-badge">{activeFilters}</span>}
           </button>
-        </form>
+        </div>
 
-        <div className="toolbar-filters">
+        <div className="toolbar-filters" id="places-filters" hidden={!showFilters}>
           <select
             value={category}
             onChange={(e) => updateParams({ category: e.target.value })}
@@ -248,7 +264,6 @@ export default function AdminPlacesPage() {
                   <tr>
                     <th scope="col">Quán</th>
                     <th scope="col">Địa chỉ</th>
-                    <th scope="col">Giá và giờ mở cửa</th>
                     <th scope="col">Hồ sơ</th>
                     <th scope="col" className="col-actions">
                       <span className="sr-only">Thao tác</span>
@@ -284,11 +299,7 @@ export default function AdminPlacesPage() {
                         </td>
                         <td data-label="Địa chỉ">
                           {place.address || <span className="muted">Chưa có địa chỉ</span>}
-                          {place.ward && <div className="cell-sub">{place.ward}</div>}
-                        </td>
-                        <td data-label="Giá">
-                          <span className="nowrap">{price ?? <span className="muted">Chưa có giá</span>}</span>
-                          {place.openingHours && <div className="cell-sub">{place.openingHours}</div>}
+                          {extra(place, price) && <div className="cell-sub">{extra(place, price)}</div>}
                         </td>
                         <td data-label="Hồ sơ">
                           <ProfilePips place={place} brokenImages={brokenImages} />
@@ -296,21 +307,21 @@ export default function AdminPlacesPage() {
                         <td className="col-actions">
                           <div className="row-actions">
                             <Link
+                              to={`/admin/places/${place.id}/edit`}
+                              state={returnState}
+                              className="btn btn-secondary btn-sm"
+                              aria-label={`Sửa ${place.name}`}
+                            >
+                              <Icon name="edit" size={16} />
+                              Sửa
+                            </Link>
+                            <Link
                               to={`/places/${place.id}`}
                               className="admin-icon-button"
                               aria-label={`Xem ${place.name} như khách`}
                               title="Xem như khách"
                             >
                               <Icon name="eye" />
-                            </Link>
-                            <Link
-                              to={`/admin/places/${place.id}/edit`}
-                              state={returnState}
-                              className="admin-icon-button"
-                              aria-label={`Sửa ${place.name}`}
-                              title="Sửa"
-                            >
-                              <Icon name="edit" />
                             </Link>
                             <button
                               type="button"
@@ -362,6 +373,9 @@ export default function AdminPlacesPage() {
     </AdminLayout>
   );
 }
+
+// Dòng phụ dưới địa chỉ: phường, giá, giờ mở cửa (thiếu mục nào thì bỏ, ô "Hồ sơ" đã báo thiếu)
+const extra = (place, price) => [place.ward, price, place.openingHours].filter(Boolean).join(" · ");
 
 function TableSkeleton() {
   return (

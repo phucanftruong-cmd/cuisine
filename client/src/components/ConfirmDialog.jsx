@@ -28,25 +28,29 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="dialog-backdrop"
+      className="modal-backdrop"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) onCancel();
       }}
     >
       <div
-        className="dialog"
+        className="modal"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
       >
         <h2 id="confirm-dialog-title">{title}</h2>
-        <div className="dialog-body">{children}</div>
-        {error && <p className="error">{error}</p>}
-        <div className="dialog-actions">
+        <div className="modal-body">{children}</div>
+        {error && (
+          <p className="notice notice--error notice--compact" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="modal-actions">
           <button
             type="button"
             ref={cancelRef}
-            className="button-secondary"
+            className="btn btn-secondary"
             onClick={onCancel}
             disabled={busy}
           >
@@ -54,7 +58,7 @@ export default function ConfirmDialog({
           </button>
           <button
             type="button"
-            className="button-danger"
+            className="btn btn-danger"
             onClick={onConfirm}
             disabled={busy}
           >

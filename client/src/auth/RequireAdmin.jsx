@@ -18,18 +18,18 @@ export default function RequireAdmin({ children }) {
 
   if (!isAdmin) {
     return (
-      <main className="container">
-        <section className="panel panel--narrow">
+      <main className="admin-shell admin-denied">
+        <section className="surface admin-denied-card">
           <h1>Không có quyền truy cập</h1>
           <p>
             Tài khoản <strong>{user.username}</strong> không phải quản trị viên nên
             không vào được trang quản trị.
           </p>
-          <div className="form-actions">
-            <button type="button" onClick={() => logout()}>
+          <div className="admin-denied-actions">
+            <button type="button" className="btn btn-primary" onClick={() => logout()}>
               Đăng nhập bằng tài khoản khác
             </button>
-            <Link to="/" className="link">
+            <Link to="/" className="btn btn-text">
               Về trang chủ
             </Link>
           </div>
