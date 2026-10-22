@@ -49,6 +49,22 @@ export function splitSentences(text, maxLength = 200) {
   return parts;
 }
 
+// Ước lượng thời lượng đọc (giây). Giọng máy không cho biết độ dài thật,
+// nên tính theo số ký tự: chữ Nhật/Hàn/Trung đọc ít ký tự mỗi giây hơn chữ Latin.
+const CHARS_PER_SECOND = { ja: 7, ko: 7, "zh-CN": 5 };
+
+export function estimateSeconds(text, code, rate = 1) {
+  const chars = (text ?? "").replace(/\s+/g, " ").trim().length;
+  if (!chars) return 0;
+  return Math.max(1, Math.round(chars / ((CHARS_PER_SECOND[code] ?? 14) * rate)));
+}
+
+// 75 -> "1:15"
+export function formatDuration(seconds) {
+  const s = Math.max(0, Math.round(seconds || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 // Mã riêng của thiết bị, tạo một lần rồi nhớ lại, để 1 máy chỉ được đếm 1 lần
 const DEVICE_KEY = "audioguide.deviceId";
 let memoryDeviceId = null;

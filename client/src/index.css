@@ -69,7 +69,8 @@ input {
   border-radius: 8px;
 }
 
-button {
+/* :where() = độ ưu tiên 0, để style riêng của trang khách (.site) và admin dễ ghi đè */
+:where(button) {
   cursor: pointer;
   padding: 10px 16px;
   border: none;
@@ -78,11 +79,11 @@ button {
   color: #fff;
 }
 
-button:hover:not(:disabled) {
+:where(button:hover:not(:disabled)) {
   background: var(--accent-dark);
 }
 
-button:disabled {
+:where(button:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
 }

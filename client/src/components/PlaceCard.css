@@ -1,0 +1,157 @@
+/* Thẻ địa điểm: dùng ở trang khách và ở form admin (xem trước), nên tự mang màu của mình */
+.tv-card {
+  --c-primary: #147d78;
+  --c-primary-soft: #ddf3ef;
+  --c-text: #202b33;
+  --c-muted: #697780;
+  --c-line: #e3e9ec;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  overflow: hidden;
+  color: var(--c-text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.tv-card:hover {
+  box-shadow: 0 10px 30px rgba(32, 43, 51, 0.08);
+}
+
+.tv-card.is-current {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 1px var(--c-primary);
+}
+
+.tv-card-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--c-primary-soft);
+}
+
+/* Mobile: 1 cột rộng, ảnh thấp hơn để thấy được nhiều thẻ hơn */
+@media (max-width: 639px) {
+  .tv-card-media {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+.tv-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tv-card-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--c-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tv-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 18px 18px;
+  flex: 1;
+}
+
+.tv-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--c-primary-soft);
+  color: var(--c-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tv-card-title {
+  margin: 2px 0 0;
+  font-size: 1.12rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.tv-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tv-card-title a:hover {
+  color: var(--c-primary);
+}
+
+.tv-card-meta,
+.tv-card-address {
+  margin: 0;
+  color: var(--c-muted);
+  font-size: 0.9rem;
+}
+
+.tv-card-address {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tv-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.tv-card-actions .tv-link {
+  margin-left: auto;
+}
+
+/* Hình minh họa khi không có ảnh */
+.place-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  --art-fill: rgba(255, 255, 255, 0.55);
+}
+
+.place-art svg {
+  width: 46%;
+  max-width: 180px;
+  height: auto;
+}
+
+.place-art--teal {
+  background: linear-gradient(135deg, #ddf3ef, #b9e4dc);
+  color: #147d78;
+}
+
+.place-art--amber {
+  background: linear-gradient(135deg, #fbefd9, #f3d7a6);
+  color: #9a6418;
+}
+
+.place-art--mint {
+  background: linear-gradient(135deg, #eaf6f1, #cfe9df);
+  color: #2b6d58;
+}

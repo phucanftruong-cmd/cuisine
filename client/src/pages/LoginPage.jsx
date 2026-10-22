@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/useAuth";
+import Icon from "../components/Icon";
+import { useI18n } from "../i18n/useI18n";
 
+// Đăng nhập / đăng ký (không bắt buộc với khách). Trang admin chuyển về đây kèm state.from.
 export default function LoginPage() {
-  const { user, isAdmin, login, logout, notice } = useAuth();
+  const { t } = useI18n();
+  const { user, isAdmin, login, register, logout, notice } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from;
 
+  const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,98 +24,119 @@ export default function LoginPage() {
 
   if (user) {
     return (
-      <section className="panel panel--narrow">
-        <h1>Bạn đã đăng nhập</h1>
-        <p>
-          Đang đăng nhập với tài khoản <strong>{user.username}</strong>
-          {isAdmin ? " (quản trị viên)" : ""}.
-        </p>
-        <div className="form-actions">
-          {isAdmin && (
-            <Link to="/admin" className="button-link">
-              Vào trang quản trị
+      <div className="tv-container tv-page">
+        <section className="tv-auth">
+          <h1>{t("auth.welcome")}</h1>
+          <p>{t("auth.loggedInAs", { name: user.username })}</p>
+          <div className="tv-auth-actions">
+            {isAdmin && (
+              <Link to="/admin" className="tv-btn tv-btn--primary">
+                {t("auth.goAdmin")}
+              </Link>
+            )}
+            <Link to="/" className="tv-btn tv-btn--outline">
+              {t("auth.backHome")}
             </Link>
-          )}
-          <button type="button" className="button-secondary" onClick={() => logout()}>
-            Đăng xuất
-          </button>
-        </div>
-      </section>
+            <button type="button" className="tv-link" onClick={() => logout()}>
+              {t("nav.logout")}
+            </button>
+          </div>
+        </section>
+      </div>
     );
+  }
+
+  function switchMode(next) {
+    setMode(next);
+    setError("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!username.trim() || !password) {
-      setError("Vui lòng nhập tên đăng nhập và mật khẩu.");
-      return;
-    }
+    if (!username.trim() || !password) return setError(t("auth.required"));
 
     setSubmitting(true);
     setError("");
     try {
-      const session = await login(username.trim(), password);
-      const admin = session.role === "Admin";
-      navigate(from ?? (admin ? "/admin" : "/"), { replace: true });
+      const action = mode === "login" ? login : register;
+      const session = await action(username.trim(), password);
+      navigate(from ?? (session.role === "Admin" ? "/admin" : "/"), { replace: true });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
     }
   }
 
+  const isLogin = mode === "login";
+
   return (
-    <section className="panel panel--narrow">
-      <h1>Đăng nhập</h1>
-      {from?.startsWith("/admin") && (
-        <p className="muted">Trang quản trị chỉ dành cho tài khoản Admin.</p>
-      )}
-      {notice && <p className="alert alert--warning">{notice}</p>}
-
-      <form className="form" onSubmit={handleSubmit} noValidate>
-        <div className="field">
-          <label htmlFor="login-username">Tên đăng nhập</label>
-          <input
-            id="login-username"
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="login-password">Mật khẩu</label>
-          <div className="input-with-button">
-            <input
-              id="login-password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+    <div className="tv-container tv-page">
+      <section className="tv-auth">
+        <div className="tv-tabs" role="tablist">
+          {["login", "register"].map((m) => (
             <button
+              key={m}
               type="button"
-              className="button-secondary"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              role="tab"
+              aria-selected={mode === m}
+              className={mode === m ? "tv-tab is-active" : "tv-tab"}
+              onClick={() => switchMode(m)}
             >
-              {showPassword ? "Ẩn" : "Hiện"}
+              {t(`auth.${m}`)}
             </button>
-          </div>
+          ))}
         </div>
 
-        {error && (
-          <p className="alert alert--error" role="alert">
-            {error}
-          </p>
-        )}
+        <p className="tv-muted">{from?.startsWith("/admin") ? t("auth.adminOnly") : t("auth.optional")}</p>
+        {notice === "expired" && <p className="tv-note tv-note--warn">{t("error.401")}</p>}
 
-        <button type="submit" className="button-block" disabled={submitting}>
-          {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
-        </button>
-      </form>
-    </section>
+        <form className="tv-form" onSubmit={handleSubmit} noValidate>
+          <label className="tv-field">
+            <span>{t("auth.username")}</span>
+            <input
+              name="username"
+              autoComplete="username"
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </label>
+
+          <label className="tv-field">
+            <span>{t("auth.password")}</span>
+            <span className="tv-input-group">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="tv-icon-btn"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              >
+                <Icon name="eye" size={18} />
+              </button>
+            </span>
+            {!isLogin && <small className="tv-muted">{t("auth.passwordHint")}</small>}
+          </label>
+
+          {error && (
+            <p className="tv-note tv-note--error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" className="tv-btn tv-btn--primary tv-btn--block tv-btn--lg" disabled={submitting}>
+            {submitting
+              ? t(isLogin ? "auth.loggingIn" : "auth.registering")
+              : t(isLogin ? "auth.login" : "auth.register")}
+          </button>
+        </form>
+      </section>
+    </div>
   );
 }
