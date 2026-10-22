@@ -6,6 +6,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Data Source=/data/audioguide.db
+      Uploads__Path: /data/uploads
       MyMemory__Email: ${MYMEMORY_EMAIL:-}
       Jwt__Key: ${JWT_KEY:?Thiếu JWT_KEY trong file .env}
       Admin__Username: ${ADMIN_USERNAME:-admin}
