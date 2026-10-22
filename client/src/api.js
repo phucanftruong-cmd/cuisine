@@ -102,3 +102,19 @@ export const getCachedTranslations = (token, id) =>
   request(`/api/places/${id}/translations`, { token });
 export const clearCachedTranslations = (token, id) =>
   request(`/api/places/${id}/translations`, { method: "DELETE", token });
+
+// Đếm thiết bị đang nghe thuyết minh
+export const sendListenerHeartbeat = (deviceId, placeId, lang) =>
+  request("/api/listeners/heartbeat", {
+    method: "POST",
+    body: JSON.stringify({ deviceId, placeId: Number(placeId), lang }),
+  });
+
+// Báo rời đi. sendBeacon vẫn gửi được khi trang đang đóng (fetch thường sẽ bị hủy)
+export function sendListenerLeave(deviceId) {
+  const url = `${API_URL}/api/listeners/leave?deviceId=${encodeURIComponent(deviceId)}`;
+  if (navigator.sendBeacon?.(url)) return;
+  fetch(url, { method: "POST", keepalive: true }).catch(() => {});
+}
+
+export const getListenerStats = (token) => request("/api/listeners/stats", { token });

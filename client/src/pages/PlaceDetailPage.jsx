@@ -4,6 +4,7 @@ import { getPlace, getTranslation } from "../api";
 import { useAuth } from "../auth/useAuth";
 import PlaceImage from "../components/PlaceImage";
 import { formatPrice } from "../utils/format";
+import { useNarration } from "../utils/useNarration";
 
 const LANGUAGES = [
   { code: "vi", label: "Tiếng Việt" },
@@ -28,6 +29,9 @@ function PlaceDetail({ id }) {
   const [translations, setTranslations] = useState({});
   const [translateErrors, setTranslateErrors] = useState({});
   const [loadingLang, setLoadingLang] = useState(null);
+
+  const text = !place ? "" : lang === "vi" ? place.description : translations[lang];
+  const narration = useNarration(id, text, lang);
 
   useEffect(() => {
     getPlace(id)
@@ -71,7 +75,6 @@ function PlaceDetail({ id }) {
   if (!place) return <p className="muted">Đang tải...</p>;
 
   const price = formatPrice(place);
-  const text = lang === "vi" ? place.description : translations[lang];
   const hasMap = place.latitude != null && place.longitude != null;
 
   return (
@@ -140,6 +143,32 @@ function PlaceDetail({ id }) {
             </button>
           ))}
         </div>
+
+        {narration.supported ? (
+          <div className="narration">
+            <button
+              type="button"
+              className={narration.playing ? "narration-button playing" : "narration-button"}
+              onClick={narration.toggle}
+              disabled={!narration.playing && !text}
+              aria-pressed={narration.playing}
+            >
+              {narration.playing ? "⏸ Dừng nghe" : "▶ Nghe thuyết minh"}
+            </button>
+            {narration.playing && (
+              <span className="narration-status">
+                <span className="live-dot" aria-hidden="true" /> Đang phát
+              </span>
+            )}
+            {narration.missingVoice && (
+              <p className="note">
+                Máy này chưa có giọng đọc cho ngôn ngữ đã chọn, có thể đọc sai giọng.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="note">Trình duyệt này không hỗ trợ đọc thuyết minh.</p>
+        )}
 
         {lang !== "vi" && loadingLang === lang && (
           <p className="muted">Đang dịch...</p>

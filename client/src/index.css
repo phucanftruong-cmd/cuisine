@@ -250,3 +250,66 @@ button:disabled {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.narration {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 4px 0 12px;
+}
+
+.narration .note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.narration-button {
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.narration-button.playing {
+  background: #fff;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+}
+
+/* Điện thoại giữ trạng thái hover sau khi chạm: không để nền tối đè chữ */
+.narration-button.playing:hover:not(:disabled) {
+  background: #fff3ea;
+  color: var(--accent-dark);
+}
+
+.narration-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2f9e44;
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(47, 158, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(47, 158, 68, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}

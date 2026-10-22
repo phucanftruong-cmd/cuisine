@@ -47,6 +47,10 @@ builder.Services.AddHttpClient<ITranslationProvider, MyMemoryTranslationProvider
     client.Timeout = TimeSpan.FromSeconds(15);
 });
 
+// Đếm thiết bị đang nghe: Singleton để mọi request dùng chung một bộ đếm trong bộ nhớ
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IListenerService, ListenerService>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
