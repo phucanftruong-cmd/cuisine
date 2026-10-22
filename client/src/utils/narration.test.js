@@ -56,3 +56,18 @@ test("localStorage bị chặn vẫn có mã thiết bị", () => {
   assert.ok(id);
   assert.equal(n.getDeviceId(blocked), id);
 });
+
+test("ước lượng thời lượng theo số ký tự, ngôn ngữ và tốc độ", () => {
+  const text = "a".repeat(140);
+  assert.equal(n.estimateSeconds(text, "vi"), 10);
+  assert.equal(n.estimateSeconds(text, "vi", 2), 5);
+  assert.equal(n.estimateSeconds("あ".repeat(70), "ja"), 10);
+  assert.equal(n.estimateSeconds("", "vi"), 0);
+  assert.equal(n.estimateSeconds("ab", "vi"), 1);
+});
+
+test("định dạng thời lượng m:ss", () => {
+  assert.equal(n.formatDuration(75), "1:15");
+  assert.equal(n.formatDuration(5), "0:05");
+  assert.equal(n.formatDuration(-3), "0:00");
+});

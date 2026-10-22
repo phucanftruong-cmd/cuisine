@@ -3,7 +3,6 @@ import * as api from "../api";
 import { AuthContext } from "./authContext";
 
 const STORAGE_KEY = "audioguide.auth";
-const EXPIRED_NOTICE = "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.";
 
 // Server trả thời gian UTC; nếu thiếu múi giờ thì coi như UTC
 function parseUtc(value) {
@@ -40,16 +39,16 @@ function saveSession(session) {
 
 export default function AuthProvider({ children }) {
   const [session, setSession] = useState(loadSession);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(""); // mã thông báo ("expired"); giao diện tự dịch
 
   const logout = useCallback((reason) => {
     saveSession(null);
     setSession(null);
-    setNotice(reason === "expired" ? EXPIRED_NOTICE : "");
+    setNotice(reason === "expired" ? "expired" : "");
   }, []);
 
-  const login = useCallback(async (username, password) => {
-    const result = await api.login(username, password);
+  // Đăng nhập và đăng ký đều trả về token: lưu phiên giống nhau
+  const startSession = useCallback((result) => {
     const next = {
       token: result.token,
       username: result.username,
@@ -61,6 +60,16 @@ export default function AuthProvider({ children }) {
     setNotice("");
     return next;
   }, []);
+
+  const login = useCallback(
+    async (username, password) => startSession(await api.login(username, password)),
+    [startSession],
+  );
+
+  const register = useCallback(
+    async (username, password) => startSession(await api.register(username, password)),
+    [startSession],
+  );
 
   // API trả 401 cho một request có token: token không còn dùng được
   useEffect(() => {
@@ -109,9 +118,10 @@ export default function AuthProvider({ children }) {
       notice,
       clearNotice: () => setNotice(""),
       login,
+      register,
       logout,
     }),
-    [session, notice, login, logout],
+    [session, notice, login, register, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

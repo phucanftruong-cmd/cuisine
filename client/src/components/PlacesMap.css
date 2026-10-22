@@ -1,0 +1,75 @@
+/* Phần khung của PlacesMap dùng chung cho trang khách và admin; màu sắc, kích thước riêng nằm ở public.css / dashboard.css */
+.places-map {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  pointer-events: none;
+}
+
+.map-marker {
+  position: absolute;
+  z-index: 2;
+}
+
+.map-marker:hover,
+.map-marker:focus-visible {
+  z-index: 3;
+  transform: scale(1.2);
+}
+
+.map-marker-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-marker:hover .map-marker-label,
+.map-marker:focus-visible .map-marker-label {
+  opacity: 1;
+}
+
+.map-zoom {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(36, 22, 14, 0.3);
+}
+
+.map-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #444;
+  font-size: 0.72rem;
+}
+
+.places-map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+}

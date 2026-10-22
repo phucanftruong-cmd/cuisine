@@ -84,33 +84,20 @@ a.kpi:hover {
   background: #cdbfb1;
 }
 
-/* ---- Bản đồ ---- */
+/* ---- Bản đồ (khung dùng chung: components/PlacesMap.css) ---- */
 .places-map {
-  position: relative;
-  overflow: hidden;
   border-radius: 10px;
   border: 1px solid var(--ad-line);
   background: #e8e4dc;
-  user-select: none;
-}
-
-.map-tile {
-  position: absolute;
-  width: 256px;
-  height: 256px;
-  max-width: none;
-  pointer-events: none;
 }
 
 .map-marker {
-  position: absolute;
   width: 18px;
   height: 18px;
   margin: -9px 0 0 -9px;
   border-radius: 50%;
   border: 3px solid #fff;
   box-shadow: 0 1px 4px rgba(36, 22, 14, 0.45);
-  z-index: 2;
 }
 
 .map-marker--done {
@@ -121,43 +108,9 @@ a.kpi:hover {
   background: #d9a24a;
 }
 
-.map-marker:hover,
-.map-marker:focus-visible {
-  z-index: 3;
-  transform: scale(1.2);
-}
-
 .map-marker-label {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 6px);
-  transform: translateX(-50%);
-  padding: 3px 8px;
-  border-radius: 6px;
   background: var(--ad-sidebar);
   color: var(--ad-sidebar-text);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.map-marker:hover .map-marker-label,
-.map-marker:focus-visible .map-marker-label {
-  opacity: 1;
-}
-
-.map-zoom {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(36, 22, 14, 0.3);
 }
 
 .admin-shell .map-zoom button {
@@ -179,23 +132,7 @@ a.kpi:hover {
   background: #f1eee9;
 }
 
-.map-attribution {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  z-index: 4;
-  padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.85);
-  color: #444;
-  font-size: 0.72rem;
-}
-
 .places-map-empty {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  margin: 0;
   color: var(--ad-muted);
 }
 

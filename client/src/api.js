@@ -31,7 +31,7 @@ function errorMessage(status, data) {
 }
 
 async function request(path, { token, ...options } = {}) {
-  const headers = { "Content-Type": "application/json" };
+  const headers = options.body ? { "Content-Type": "application/json" } : {};
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -62,15 +62,16 @@ export function getPlaces(params = {}) {
   return request(`/api/Places${qs ? `?${qs}` : ""}`);
 }
 
-// Lấy hết các quán khớp bộ lọc (gọi lần lượt từng trang 50 quán).
+// Lấy hết các quán khớp bộ lọc (trang 50 quán một; trang 1 cho biết tổng số trang, các trang còn lại tải song song).
 // Dùng cho trang tổng quan và bộ lọc "còn thiếu thông tin" của admin.
 export async function getAllPlaces(params = {}) {
-  const items = [];
-  for (let page = 1; ; page++) {
-    const data = await getPlaces({ ...params, page, pageSize: 50 });
-    items.push(...data.items);
-    if (page >= data.totalPages || data.items.length === 0) return items;
-  }
+  const first = await getPlaces({ ...params, page: 1, pageSize: 50 });
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, i) =>
+      getPlaces({ ...params, page: i + 2, pageSize: 50 }),
+    ),
+  );
+  return [first, ...rest].flatMap((data) => data.items);
 }
 
 export const getPlaceFilters = () => request("/api/Places/filters");
