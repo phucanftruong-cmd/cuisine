@@ -3,6 +3,17 @@ import { Link } from "react-router";
 import { getAllPlaces } from "../../api";
 import Icon from "../../components/Icon";
 import PlaceImage from "../../components/PlaceImage";
+import PlacesMap from "../../components/PlacesMap";
+import {
+  averagePrice,
+  countBy,
+  countRecent,
+  describePeakHours,
+  openHoursHistogram,
+  priceBuckets,
+  recentPlaces,
+  relativeTime,
+} from "../../utils/dashboardStats";
 import {
   PROFILE_ITEMS,
   getMissingItems,
@@ -12,8 +23,11 @@ import {
 } from "../../utils/placeStatus";
 import { useBrokenImages } from "../../utils/useBrokenImages";
 import AdminLayout from "./AdminLayout";
+import "./dashboard.css";
 
-const TODO_LIMIT = 6;
+const TODO_LIMIT = 5;
+const RECENT_LIMIT = 5;
+const editUrl = (place) => `/admin/places/${place.id}/edit`;
 
 export default function AdminDashboardPage() {
   const [places, setPlaces] = useState(null);
@@ -45,11 +59,26 @@ export default function AdminDashboardPage() {
     () => (places ? places.filter((p) => !isProfileComplete(p, ctx)) : []),
     [places, ctx],
   );
+  const stats = useMemo(() => {
+    if (!places) return null;
+    const wards = countBy(places, "ward", "Chưa có phường");
+    return {
+      avgPrice: averagePrice(places),
+      wardCount: wards.filter((w) => !w.empty).length,
+      newThisWeek: countRecent(places, 7),
+      recent: recentPlaces(places, RECENT_LIMIT),
+      wards,
+      prices: priceBuckets(places),
+      categories: countBy(places, "category", "Chưa có loại món"),
+      hours: openHoursHistogram(places),
+      located: places.filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)).length,
+    };
+  }, [places]);
 
   return (
     <AdminLayout
       title="Tổng quan"
-      description="Theo dõi các quán đã nhập đủ thông tin cho khách chưa."
+      description="Số liệu các quán và những quán còn thiếu thông tin cho khách."
       actions={
         <Link to="/admin/places/new" className="btn btn-primary">
           <Icon name="plus" />
@@ -81,6 +110,37 @@ export default function AdminDashboardPage() {
 
       {summary && summary.total > 0 && (
         <>
+          <section className="kpis" aria-label="Số liệu nhanh">
+            <Link to="/admin/places" className="kpi">
+              <span className="kpi-label">Tổng số quán</span>
+              <span className="kpi-value">{summary.total}</span>
+              <span className="kpi-note">{summary.complete} quán đã đủ hồ sơ</span>
+            </Link>
+            <div className="kpi">
+              <span className="kpi-label">Giá trung bình mỗi người</span>
+              <span className="kpi-value">
+                {stats.avgPrice == null ? "—" : `${stats.avgPrice.toLocaleString("vi-VN")}đ`}
+              </span>
+              <span className="kpi-note">Tính trên các quán đã nhập giá</span>
+            </div>
+            <div className="kpi">
+              <span className="kpi-label">Số phường có quán</span>
+              <span className="kpi-value">{stats.wardCount}</span>
+              <span className="kpi-note">
+                {stats.wards.find((w) => w.empty)?.count
+                  ? `${stats.wards.find((w) => w.empty).count} quán chưa nhập phường`
+                  : "Quán nào cũng đã có phường"}
+              </span>
+            </div>
+            <div className="kpi">
+              <span className="kpi-label">Quán mới trong 7 ngày</span>
+              <span className="kpi-value">{stats.newThisWeek}</span>
+              <span className="kpi-note">
+                {stats.recent[0] ? `Gần nhất: ${relativeTime(stats.recent[0].createdAt)}` : ""}
+              </span>
+            </div>
+          </section>
+
           <section className="surface ledger" aria-labelledby="ledger-title">
             <div className="ledger-head">
               <h2 id="ledger-title">
@@ -106,7 +166,7 @@ export default function AdminDashboardPage() {
                 return (
                   <li key={place.id}>
                     <Link
-                      to={`/admin/places/${place.id}/edit`}
+                      to={editUrl(place)}
                       className={`ledger-cell ledger-cell--${state}`}
                       title={label}
                       aria-label={label}
@@ -143,17 +203,14 @@ export default function AdminDashboardPage() {
                 </Link>
               );
             })}
-            <Link
-              to="/admin/places?missing=sample"
-              className={summary.samples ? "gap gap--open" : "gap"}
-            >
+            <Link to="/admin/places?missing=sample" className={summary.samples ? "gap gap--open" : "gap"}>
               <Icon name="alert" />
               <span className="gap-label">Dữ liệu mẫu</span>
               <span className="gap-count">{summary.samples ? `Còn ${summary.samples}` : "Đã thay hết"}</span>
             </Link>
           </section>
 
-          <div className="dashboard-columns">
+          <div className="dashboard-columns dashboard-columns--even">
             <section className="surface" aria-labelledby="todo-title">
               <div className="surface-head">
                 <h2 id="todo-title">Cần bổ sung</h2>
@@ -169,11 +226,7 @@ export default function AdminDashboardPage() {
                 <ul className="todo-list">
                   {todo.slice(0, TODO_LIMIT).map((place) => (
                     <li key={place.id}>
-                      <PlaceImage
-                        src={place.imageUrl}
-                        className="thumb thumb--sm"
-                        fallbackClassName="thumb--empty"
-                      />
+                      <PlaceImage src={place.imageUrl} className="thumb thumb--sm" fallbackClassName="thumb--empty" />
                       <div className="todo-body">
                         <strong>{place.name}</strong>
                         <span className="todo-missing">
@@ -185,7 +238,7 @@ export default function AdminDashboardPage() {
                           ))}
                         </span>
                       </div>
-                      <Link to={`/admin/places/${place.id}/edit`} className="btn btn-secondary btn-sm">
+                      <Link to={editUrl(place)} className="btn btn-secondary btn-sm">
                         Bổ sung
                       </Link>
                     </li>
@@ -194,29 +247,136 @@ export default function AdminDashboardPage() {
               )}
             </section>
 
-            <section className="surface" aria-labelledby="category-title">
+            <section className="surface" aria-labelledby="recent-title">
               <div className="surface-head">
-                <h2 id="category-title">Theo loại món</h2>
+                <h2 id="recent-title">Quán mới thêm gần đây</h2>
+                <Link to="/admin/places" className="btn-text">
+                  Tất cả quán
+                </Link>
               </div>
-              <ul className="bars">
-                {summary.categories.map((c) => (
-                  <li key={c.name}>
-                    <span className="bar-label">{c.name}</span>
-                    <span className="bar-track" aria-hidden="true">
-                      <span
-                        className="bar-fill"
-                        style={{ width: `${(c.count / summary.categories[0].count) * 100}%` }}
-                      />
-                    </span>
-                    <span className="bar-value">{c.count}</span>
+              <ul className="todo-list recent-list">
+                {stats.recent.map((place) => (
+                  <li key={place.id}>
+                    <PlaceImage src={place.imageUrl} className="thumb thumb--sm" fallbackClassName="thumb--empty" />
+                    <div className="todo-body">
+                      <Link to={editUrl(place)} className="recent-name">
+                        {place.name}
+                      </Link>
+                      <span className="cell-sub">
+                        {[place.category, place.ward].filter(Boolean).join(", ") || "Chưa có loại món, phường"}
+                      </span>
+                    </div>
+                    <time className="recent-time" dateTime={place.createdAt}>
+                      {relativeTime(place.createdAt)}
+                    </time>
                   </li>
                 ))}
               </ul>
             </section>
           </div>
+
+          <section className="surface" aria-labelledby="map-title">
+            <div className="surface-head">
+              <h2 id="map-title">
+                <Icon name="pin" /> Bản đồ các quán
+              </h2>
+              {stats.located < summary.total && (
+                <Link to="/admin/places?missing=location" className="btn-text">
+                  {summary.total - stats.located} quán chưa có vị trí
+                </Link>
+              )}
+            </div>
+            <PlacesMap
+              places={places}
+              linkTo={editUrl}
+              markerClass={(p) => (isProfileComplete(p, ctx) ? "map-marker--done" : "map-marker--todo")}
+            />
+            <p className="field-hint map-caption">
+              Bấm vào một điểm để sửa quán. Điểm xanh: đủ hồ sơ, điểm vàng: còn thiếu thông tin.
+            </p>
+          </section>
+
+          <HoursChart hours={stats.hours} />
+
+          <div className="dashboard-grid">
+            <BarList id="ward-title" title="Theo phường" rows={stats.wards} />
+            <BarList id="price-title" title="Theo mức giá" rows={stats.prices} />
+            <BarList id="category-title" title="Theo loại món" rows={stats.categories} />
+          </div>
         </>
       )}
     </AdminLayout>
+  );
+}
+
+function BarList({ id, title, rows }) {
+  const max = Math.max(1, ...rows.map((r) => r.count));
+  return (
+    <section className="surface" aria-labelledby={id}>
+      <div className="surface-head">
+        <h2 id={id}>{title}</h2>
+      </div>
+      <ul className="bars">
+        {rows.map((row) => (
+          <li key={row.label} className={row.empty ? "is-empty" : undefined}>
+            <span className="bar-label" title={row.label}>
+              {row.label}
+            </span>
+            <span className="bar-track" aria-hidden="true">
+              <span className="bar-fill" style={{ width: `${(row.count / max) * 100}%` }} />
+            </span>
+            <span className="bar-value">{row.count}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// Số quán mở cửa trong từng giờ, để biết lúc nào có nhiều lựa chọn cho khách
+function HoursChart({ hours: { hours, parsed, unparsed } }) {
+  const max = Math.max(...hours.map((h) => h.count));
+  const peak = describePeakHours(hours);
+
+  return (
+    <section className="surface" aria-labelledby="hours-title">
+      <div className="surface-head">
+        <h2 id="hours-title">
+          <Icon name="clock" /> Số quán mở cửa theo giờ
+        </h2>
+        {peak && (
+          <span className="cell-sub">
+            Đông nhất {peak.max} quán mở, lúc {peak.text}
+          </span>
+        )}
+      </div>
+
+      {parsed === 0 ? (
+        <p className="muted">Chưa có quán nào nhập giờ mở cửa theo dạng “06:00 - 21:00”.</p>
+      ) : (
+        <>
+          <ol className="hours-chart" aria-label="Số quán mở cửa trong từng giờ">
+            {hours.map((h) => (
+              <li key={h.hour} title={`${h.hour}h–${h.hour + 1}h: ${h.count} quán mở`}>
+                <span className="hours-bar-wrap">
+                  <span
+                    className={h.count === max ? "hours-bar is-peak" : "hours-bar"}
+                    style={{ height: `${max ? (h.count / max) * 100 : 0}%` }}
+                  />
+                </span>
+                <span className={h.hour % 3 === 0 ? "hours-label" : "hours-label is-minor"}>{h.hour}h</span>
+                <span className="sr-only">{h.count} quán</span>
+              </li>
+            ))}
+          </ol>
+          {unparsed > 0 && (
+            <p className="field-hint">
+              {unparsed} quán có giờ mở cửa không đọc được (nên nhập dạng “06:00 - 21:00”), chưa tính vào biểu đồ.
+            </p>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
