@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router";
+import { Link, Navigate, useLocation } from "react-router";
 import { useAuth } from "./useAuth";
 
 // Chỉ cho Admin vào; chưa đăng nhập thì chuyển sang trang đăng nhập rồi quay lại
@@ -18,16 +18,23 @@ export default function RequireAdmin({ children }) {
 
   if (!isAdmin) {
     return (
-      <section className="panel panel--narrow">
-        <h1>Không có quyền truy cập</h1>
-        <p>
-          Tài khoản <strong>{user.username}</strong> không phải quản trị viên nên
-          không vào được trang quản trị.
-        </p>
-        <button type="button" onClick={() => logout()}>
-          Đăng nhập bằng tài khoản khác
-        </button>
-      </section>
+      <main className="container">
+        <section className="panel panel--narrow">
+          <h1>Không có quyền truy cập</h1>
+          <p>
+            Tài khoản <strong>{user.username}</strong> không phải quản trị viên nên
+            không vào được trang quản trị.
+          </p>
+          <div className="form-actions">
+            <button type="button" onClick={() => logout()}>
+              Đăng nhập bằng tài khoản khác
+            </button>
+            <Link to="/" className="link">
+              Về trang chủ
+            </Link>
+          </div>
+        </section>
+      </main>
     );
   }
 

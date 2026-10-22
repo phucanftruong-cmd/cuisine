@@ -10,6 +10,8 @@ import {
 } from "../../api";
 import { useAuth } from "../../auth/useAuth";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Icon from "../../components/Icon";
+import PlaceCard from "../../components/PlaceCard";
 import {
   EMPTY_FORM,
   LIMITS,
@@ -22,6 +24,9 @@ import {
   toPlacePayload,
   validatePlaceForm,
 } from "../../utils/placeForm";
+import { PROFILE_ITEMS, isSamplePlace } from "../../utils/placeStatus";
+import AdminLayout from "./AdminLayout";
+import { useToast } from "./toastContext";
 
 const LANGUAGE_NAMES = {
   en: "English",
@@ -31,10 +36,39 @@ const LANGUAGE_NAMES = {
   "zh-CN": "简体中文",
 };
 
+const IMAGE_ERROR =
+  "Không tải được ảnh từ link này. Hãy dùng link trỏ thẳng tới file ảnh: chuột phải vào ảnh, chọn “Sao chép địa chỉ hình ảnh”, rồi dán vào đây.";
+
 export default function PlaceFormPage() {
   const { id } = useParams();
   // key: chuyển từ "thêm" sang "sửa" (hoặc sửa quán khác) thì làm lại form từ đầu
   return <PlaceForm key={id ?? "new"} id={id} />;
+}
+
+// Thử tải ảnh ở nền để biết link có dùng được không (đợi người dùng ngừng gõ một chút)
+function useImageStatus(url) {
+  const [state, setState] = useState({ url: "", status: "idle" });
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => !cancelled && setState({ url, status: "ok" });
+    img.onerror = () => !cancelled && setState({ url, status: "error" });
+    const timer = setTimeout(() => {
+      img.src = url;
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [url]);
+
+  if (!url) return "idle";
+  return state.url === url ? state.status : "loading";
 }
 
 function PlaceForm({ id }) {
@@ -42,7 +76,7 @@ function PlaceForm({ id }) {
   const { token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const listUrl = `/admin${location.state?.returnTo ?? ""}`;
+  const listUrl = `/admin/places${location.state?.returnTo ?? ""}`;
 
   const [values, setValues] = useState(EMPTY_FORM);
   const [original, setOriginal] = useState(isEdit ? null : EMPTY_FORM);
@@ -77,9 +111,14 @@ function PlaceForm({ id }) {
     };
   }, [id, isEdit]);
 
+  const imageUrl = values.imageUrl.trim();
+  const imageStatus = useImageStatus(isHttpUrl(imageUrl) ? imageUrl : "");
+
   const loaded = original !== null;
   const dirty = loaded && !isSameForm(values, original);
   const errors = submitted ? validatePlaceForm(values) : {};
+  if (imageStatus === "error" && !errors.imageUrl) errors.imageUrl = IMAGE_ERROR;
+  const errorCount = Object.keys(errors).length;
   const descriptionChanged =
     isEdit && loaded && values.description.trim() !== original.description.trim();
 
@@ -94,10 +133,6 @@ function PlaceForm({ id }) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty, saving]);
 
-  function setField(name, value) {
-    setValues((current) => ({ ...current, [name]: value }));
-  }
-
   function handleChange(event) {
     const { name, value } = event.target;
     // Dán cặp tọa độ "10.7465, 106.6350" (copy từ Google Maps) vào ô vĩ độ
@@ -108,7 +143,14 @@ function PlaceForm({ id }) {
         return;
       }
     }
-    setField(name, value);
+    setValues((current) => ({ ...current, [name]: value }));
+  }
+
+  // Rời trang khi còn thay đổi chưa lưu thì hỏi lại
+  function confirmLeave(event) {
+    if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?")) {
+      event.preventDefault();
+    }
   }
 
   async function handleSubmit(event) {
@@ -117,6 +159,7 @@ function PlaceForm({ id }) {
     setServerError("");
 
     const currentErrors = validatePlaceForm(values);
+    if (imageStatus === "error") currentErrors.imageUrl = IMAGE_ERROR;
     if (Object.keys(currentErrors).length > 0) {
       // Đưa con trỏ tới ô lỗi đầu tiên
       const firstField = Object.keys(EMPTY_FORM).find((key) => currentErrors[key]);
@@ -140,33 +183,42 @@ function PlaceForm({ id }) {
     }
   }
 
+  const title = isEdit ? "Sửa quán" : "Thêm quán mới";
+  const back = { to: listUrl, label: "Danh sách quán", onClick: confirmLeave };
+
   if (loadError) {
     return (
-      <>
-        <Link to={listUrl} className="back">
-          ← Danh sách quán
-        </Link>
-        <p className="alert alert--error">{loadError}</p>
-      </>
+      <AdminLayout title={title} back={back}>
+        <div className="notice notice--error">{loadError}</div>
+      </AdminLayout>
     );
   }
-  if (!loaded) return <p className="muted">Đang tải...</p>;
+  if (!loaded) {
+    return (
+      <AdminLayout title={title} back={back}>
+        <div className="surface" aria-busy="true" aria-label="Đang tải">
+          <div className="skeleton skeleton--title" />
+          <div className="skeleton skeleton--line" />
+          <div className="skeleton skeleton--line" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  const priceMinPreview = formatPreviewPrice(values.priceMin);
-  const priceMaxPreview = formatPreviewPrice(values.priceMax);
   const latitude = parseCoordinate(values.latitude);
   const longitude = parseCoordinate(values.longitude);
   const hasCoordinates =
-    !errors.latitude && !errors.longitude &&
-    Number.isFinite(latitude) && Number.isFinite(longitude);
-  const imageUrl = values.imageUrl.trim();
+    !errors.latitude && !errors.longitude && Number.isFinite(latitude) && Number.isFinite(longitude);
 
-  // Rời trang khi còn thay đổi chưa lưu thì hỏi lại
-  function confirmLeave(event) {
-    if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?")) {
-      event.preventDefault();
-    }
-  }
+  const preview = {
+    name: values.name.trim() || "Tên quán",
+    category: values.category.trim(),
+    address: [values.address.trim(), values.ward.trim()].filter(Boolean).join(", "),
+    priceMin: Number.isFinite(parsePrice(values.priceMin)) ? parsePrice(values.priceMin) : null,
+    priceMax: Number.isFinite(parsePrice(values.priceMax)) ? parsePrice(values.priceMax) : null,
+    openingHours: values.openingHours.trim(),
+    imageUrl: imageStatus === "ok" ? imageUrl : "",
+  };
 
   const fieldProps = (name) => ({
     id: `place-${name}`,
@@ -178,180 +230,215 @@ function PlaceForm({ id }) {
   });
 
   return (
-    <>
-      <Link to={listUrl} className="back" onClick={confirmLeave}>
-        ← Danh sách quán
-      </Link>
-
-      <div className="page-header">
-        <div>
-          <h1>{isEdit ? "Sửa quán" : "Thêm quán mới"}</h1>
-          {isEdit && <p className="muted">{original.name}</p>}
-        </div>
-        {isEdit && (
-          <Link to={`/places/${id}`} className="button-link button-secondary">
-            Xem trang khách
+    <AdminLayout
+      title={title}
+      description={isEdit ? original.name : "Nhập thông tin quán đã khảo sát. Ô có dấu * là bắt buộc."}
+      back={back}
+      actions={
+        <>
+          <Link to={listUrl} className="btn btn-secondary" onClick={confirmLeave}>
+            Hủy
           </Link>
-        )}
-      </div>
-
+          <button type="submit" form="place-form" className="btn btn-primary" disabled={saving}>
+            {saving ? "Đang lưu…" : isEdit ? "Lưu thay đổi" : "Thêm quán"}
+          </button>
+        </>
+      }
+    >
       {serverError && (
-        <p className="alert alert--error" role="alert">
+        <div className="notice notice--error" role="alert">
           Không lưu được: {serverError}
-        </p>
+        </div>
       )}
-      {submitted && Object.keys(errors).length > 0 && (
-        <p className="alert alert--error" role="alert">
-          Có {Object.keys(errors).length} ô chưa hợp lệ, vui lòng kiểm tra lại.
-        </p>
+      {submitted && errorCount > 0 && (
+        <div className="notice notice--error" role="alert">
+          Có {errorCount} ô chưa hợp lệ, vui lòng kiểm tra lại.
+        </div>
       )}
 
-      <form className="form place-form" onSubmit={handleSubmit} noValidate>
-        <fieldset className="form-section">
-          <legend>Thông tin chính</legend>
+      <div className="form-layout">
+        <form id="place-form" className="form-main" onSubmit={handleSubmit} noValidate>
+          <fieldset className="surface form-section">
+            <legend>Thông tin chính</legend>
 
-          <Field label="Tên quán" name="name" required error={errors.name}>
-            <input {...fieldProps("name")} maxLength={LIMITS.name} placeholder="Ví dụ: Phở Hòa" />
-          </Field>
+            <Field label="Tên quán" name="name" required error={errors.name}>
+              <input {...fieldProps("name")} maxLength={LIMITS.name} placeholder="Ví dụ: Phở Hòa" />
+            </Field>
 
-          <Field
-            label="Loại món"
-            name="category"
-            error={errors.category}
-            hint="Chọn loại đã có hoặc gõ loại mới. Dùng để lọc ở trang chủ."
-          >
-            <input
-              {...fieldProps("category")}
-              list="category-options"
-              maxLength={LIMITS.category}
-              placeholder="Ví dụ: Phở, Bún, Cơm tấm..."
-            />
-            <datalist id="category-options">
-              {filters.categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </Field>
-
-          <Field
-            label="Nội dung thuyết minh (tiếng Việt)"
-            name="description"
-            required
-            error={errors.description}
-            hint={
-              <>
-                Đây là đoạn giới thiệu được dịch tự động sang các ngôn ngữ khác.{" "}
-                <span className={values.description.trim().length > LIMITS.description ? "error" : ""}>
-                  {values.description.trim().length}/{LIMITS.description} ký tự
-                </span>
-              </>
-            }
-          >
-            <textarea {...fieldProps("description")} rows={8} />
-          </Field>
-          {descriptionChanged && (
-            <p className="alert alert--warning">
-              Bạn đã sửa nội dung thuyết minh. Khi lưu, các bản dịch cũ của quán sẽ bị xóa và
-              được dịch lại khi khách xem.
-            </p>
-          )}
-        </fieldset>
-
-        <fieldset className="form-section">
-          <legend>Địa chỉ và liên hệ</legend>
-
-          <Field label="Địa chỉ" name="address" error={errors.address}>
-            <input {...fieldProps("address")} maxLength={LIMITS.address} placeholder="Số nhà, tên đường" />
-          </Field>
-
-          <div className="form-row">
-            <Field label="Phường" name="ward" error={errors.ward}>
-              <input {...fieldProps("ward")} list="ward-options" maxLength={LIMITS.ward} />
-              <datalist id="ward-options">
-                {filters.wards.map((w) => (
-                  <option key={w} value={w} />
+            <Field
+              label="Loại món"
+              name="category"
+              error={errors.category}
+              hint="Chọn loại đã có hoặc gõ loại mới. Khách dùng mục này để lọc quán."
+            >
+              <input
+                {...fieldProps("category")}
+                list="category-options"
+                maxLength={LIMITS.category}
+                placeholder="Ví dụ: Phở, Bún, Cơm tấm"
+              />
+              <datalist id="category-options">
+                {filters.categories.map((c) => (
+                  <option key={c} value={c} />
                 ))}
               </datalist>
             </Field>
 
-            <Field label="Số điện thoại" name="phone" error={errors.phone}>
-              <input {...fieldProps("phone")} type="tel" inputMode="tel" maxLength={LIMITS.phone} />
-            </Field>
-          </div>
-
-          <Field label="Giờ mở cửa" name="openingHours" error={errors.openingHours}>
-            <input
-              {...fieldProps("openingHours")}
-              maxLength={LIMITS.openingHours}
-              placeholder="Ví dụ: 06:00 - 21:00"
-            />
-          </Field>
-        </fieldset>
-
-        <fieldset className="form-section">
-          <legend>Giá mỗi người (đồng)</legend>
-          <div className="form-row">
-            <Field label="Giá thấp nhất" name="priceMin" error={errors.priceMin} hint={priceMinPreview}>
-              <input {...fieldProps("priceMin")} inputMode="numeric" placeholder="Ví dụ: 40000" />
-            </Field>
-            <Field label="Giá cao nhất" name="priceMax" error={errors.priceMax} hint={priceMaxPreview}>
-              <input {...fieldProps("priceMax")} inputMode="numeric" placeholder="Ví dụ: 70000" />
-            </Field>
-          </div>
-        </fieldset>
-
-        <fieldset className="form-section">
-          <legend>Hình ảnh</legend>
-          <Field
-            label="Link ảnh"
-            name="imageUrl"
-            error={errors.imageUrl}
-            hint="Dán đường dẫn ảnh bắt đầu bằng https://"
-          >
-            <input {...fieldProps("imageUrl")} type="url" maxLength={LIMITS.imageUrl} />
-          </Field>
-          {imageUrl && isHttpUrl(imageUrl) && <ImagePreview key={imageUrl} src={imageUrl} />}
-        </fieldset>
-
-        <fieldset className="form-section">
-          <legend>Vị trí trên bản đồ</legend>
-          <p className="muted small">
-            Mẹo: trên Google Maps, bấm chuột phải vào quán rồi bấm vào dòng tọa độ để sao chép,
-            sau đó dán cả cặp số vào ô Vĩ độ.
-          </p>
-          <div className="form-row">
-            <Field label="Vĩ độ" name="latitude" error={errors.latitude}>
-              <input {...fieldProps("latitude")} inputMode="decimal" placeholder="10.7465" />
-            </Field>
-            <Field label="Kinh độ" name="longitude" error={errors.longitude}>
-              <input {...fieldProps("longitude")} inputMode="decimal" placeholder="106.6350" />
-            </Field>
-          </div>
-          {hasCoordinates && (
-            <a
-              href={`https://www.google.com/maps?q=${latitude},${longitude}`}
-              target="_blank"
-              rel="noreferrer"
-              className="link"
+            <Field
+              label="Nội dung thuyết minh (tiếng Việt)"
+              name="description"
+              required
+              error={errors.description}
+              hint={
+                <>
+                  Đoạn giới thiệu này được dịch tự động sang 5 ngôn ngữ cho khách nước ngoài.{" "}
+                  <span className={values.description.trim().length > LIMITS.description ? "field-error" : ""}>
+                    {values.description.trim().length}/{LIMITS.description} ký tự
+                  </span>
+                </>
+              }
             >
-              Kiểm tra vị trí trên Google Maps ↗
-            </a>
+              <textarea {...fieldProps("description")} rows={8} />
+            </Field>
+            {descriptionChanged && (
+              <div className="notice notice--warning">
+                Bạn đã sửa nội dung thuyết minh. Khi lưu, các bản dịch cũ của quán sẽ bị xóa và được dịch
+                lại khi khách xem.
+              </div>
+            )}
+          </fieldset>
+
+          <fieldset className="surface form-section">
+            <legend>Địa chỉ và liên hệ</legend>
+
+            <Field label="Địa chỉ" name="address" error={errors.address}>
+              <input {...fieldProps("address")} maxLength={LIMITS.address} placeholder="Số nhà, tên đường" />
+            </Field>
+
+            <div className="form-row">
+              <Field label="Phường" name="ward" error={errors.ward}>
+                <input {...fieldProps("ward")} list="ward-options" maxLength={LIMITS.ward} />
+                <datalist id="ward-options">
+                  {filters.wards.map((w) => (
+                    <option key={w} value={w} />
+                  ))}
+                </datalist>
+              </Field>
+
+              <Field label="Số điện thoại" name="phone" error={errors.phone}>
+                <input {...fieldProps("phone")} type="tel" inputMode="tel" maxLength={LIMITS.phone} />
+              </Field>
+            </div>
+
+            <Field label="Giờ mở cửa" name="openingHours" error={errors.openingHours}>
+              <input
+                {...fieldProps("openingHours")}
+                maxLength={LIMITS.openingHours}
+                placeholder="Ví dụ: 06:00 - 21:00"
+              />
+            </Field>
+          </fieldset>
+
+          <fieldset className="surface form-section">
+            <legend>Giá mỗi người</legend>
+            <div className="form-row">
+              <Field label="Giá thấp nhất (đồng)" name="priceMin" error={errors.priceMin} hint={pricePreview(values.priceMin)}>
+                <input {...fieldProps("priceMin")} inputMode="numeric" placeholder="Ví dụ: 40000" />
+              </Field>
+              <Field label="Giá cao nhất (đồng)" name="priceMax" error={errors.priceMax} hint={pricePreview(values.priceMax)}>
+                <input {...fieldProps("priceMax")} inputMode="numeric" placeholder="Ví dụ: 70000" />
+              </Field>
+            </div>
+          </fieldset>
+
+          <fieldset className="surface form-section">
+            <legend>Ảnh quán</legend>
+            <Field
+              label="Link ảnh"
+              name="imageUrl"
+              error={errors.imageUrl}
+              hint={<ImageStatusHint status={imageStatus} />}
+            >
+              <div className="input-group">
+                <input {...fieldProps("imageUrl")} type="url" maxLength={LIMITS.imageUrl} placeholder="https://…/anh-quan.jpg" />
+                {values.imageUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setValues((current) => ({ ...current, imageUrl: "" }))}
+                  >
+                    Bỏ ảnh
+                  </button>
+                )}
+              </div>
+            </Field>
+          </fieldset>
+
+          <fieldset className="surface form-section">
+            <legend>Vị trí trên bản đồ</legend>
+            <p className="field-hint">
+              Trên Google Maps, chuột phải vào quán rồi bấm dòng tọa độ đầu tiên để sao chép. Dán cả cặp số
+              vào ô Vĩ độ, hệ thống tự tách ra 2 ô.
+            </p>
+            <div className="form-row">
+              <Field label="Vĩ độ" name="latitude" error={errors.latitude}>
+                <input {...fieldProps("latitude")} inputMode="decimal" placeholder="10.7465" />
+              </Field>
+              <Field label="Kinh độ" name="longitude" error={errors.longitude}>
+                <input {...fieldProps("longitude")} inputMode="decimal" placeholder="106.6350" />
+              </Field>
+            </div>
+            {hasCoordinates && (
+              <a
+                href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-text"
+              >
+                <Icon name="pin" size={16} />
+                Kiểm tra vị trí trên Google Maps
+              </a>
+            )}
+          </fieldset>
+
+          {isEdit && <TranslationCachePanel placeId={id} token={token} />}
+        </form>
+
+        <aside className="form-aside" aria-label="Xem trước">
+          <section className="surface aside-section">
+            <h2>Khách sẽ thấy</h2>
+            <PlaceCard place={preview} preview />
+          </section>
+
+          <section className="surface aside-section">
+            <h2>Hồ sơ quán</h2>
+            <ul className="checklist">
+              {PROFILE_ITEMS.map((item) => {
+                const ok = item.key === "image" ? imageStatus === "ok" : item.has(values);
+                return (
+                  <li key={item.key} className={ok ? "is-done" : ""}>
+                    <Icon name={ok ? "check" : item.icon} size={16} />
+                    {item.label}
+                  </li>
+                );
+              })}
+            </ul>
+            {isSamplePlace(values) && (
+              <p className="notice notice--warning notice--compact">
+                Tên còn chữ “[Mẫu]”. Đổi thành tên quán thật sau khi khảo sát.
+              </p>
+            )}
+          </section>
+
+          {isEdit && (
+            <Link to={`/places/${id}`} className="btn-text aside-link">
+              <Icon name="eye" size={16} />
+              Mở trang của quán như khách
+            </Link>
           )}
-        </fieldset>
-
-        <div className="form-actions form-actions--sticky">
-          <button type="submit" disabled={saving}>
-            {saving ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Thêm quán"}
-          </button>
-          <Link to={listUrl} className="button-link button-secondary" onClick={confirmLeave}>
-            Hủy
-          </Link>
-          {isEdit && !dirty && <span className="muted small">Chưa có thay đổi</span>}
-        </div>
-      </form>
-
-      {isEdit && <TranslationCachePanel placeId={id} token={token} />}
-    </>
+        </aside>
+      </div>
+    </AdminLayout>
   );
 }
 
@@ -378,28 +465,31 @@ function Field({ label, name, required, error, hint, children }) {
   );
 }
 
-function ImagePreview({ src }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return <p className="field-error">Không tải được ảnh từ link này. Hãy kiểm tra lại link.</p>;
-  }
-  return <img src={src} alt="Xem trước ảnh quán" className="image-preview" onError={() => setFailed(true)} />;
+function ImageStatusHint({ status }) {
+  if (status === "loading") return "Đang kiểm tra ảnh…";
+  if (status === "ok")
+    return (
+      <span className="hint-ok">
+        <Icon name="check" size={14} /> Ảnh tải được, xem ở thẻ bên cạnh.
+      </span>
+    );
+  return "Dán link trỏ thẳng tới file ảnh (thường kết thúc bằng .jpg, .png, .webp).";
 }
 
-function formatPreviewPrice(value) {
+function pricePreview(value) {
   const price = parsePrice(value);
   return Number.isFinite(price) ? `= ${price.toLocaleString("vi-VN")}đ` : null;
 }
 
 // Xem và xóa các bản dịch đã lưu của quán
 function TranslationCachePanel({ placeId, token }) {
+  const toast = useToast();
   const [items, setItems] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [clearError, setClearError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let ignore = false;
@@ -424,7 +514,7 @@ function TranslationCachePanel({ placeId, token }) {
     try {
       await clearCachedTranslations(token, placeId);
       setConfirming(false);
-      setMessage("Đã xóa các bản dịch đã lưu. Khách xem lần tới sẽ được dịch lại.");
+      toast("Đã xóa các bản dịch đã lưu. Khách xem lần tới sẽ được dịch lại.");
       setReloadKey((k) => k + 1);
     } catch (err) {
       setClearError(err.message);
@@ -434,40 +524,41 @@ function TranslationCachePanel({ placeId, token }) {
   }
 
   return (
-    <section className="panel translation-panel">
-      <h2>Bản dịch đã lưu</h2>
-      <p className="muted small">
-        Bản dịch tự động được lưu lại sau lần dịch đầu tiên để không phải gọi dịch vụ dịch nhiều
-        lần. Xóa đi nếu bản dịch sai hoặc dịch vụ dịch đã dịch tốt hơn.
-      </p>
-
-      {message && <p className="alert alert--success">{message}</p>}
-      {error && <p className="error">Không tải được bản dịch: {error}</p>}
-      {!items && !error && <p className="muted">Đang tải...</p>}
-
-      {items && items.length === 0 && <p>Chưa có bản dịch nào được lưu.</p>}
-      {items && items.length > 0 && (
-        <>
-          <ul className="translation-list">
-            {items.map((t) => (
-              <li key={t.languageCode}>
-                <strong>{LANGUAGE_NAMES[t.languageCode] ?? t.languageCode}</strong>
-                <p className="translation-text">{t.translatedText}</p>
-              </li>
-            ))}
-          </ul>
+    <section className="surface form-section translation-panel" aria-labelledby="translation-title">
+      <div className="surface-head">
+        <h2 id="translation-title">
+          <Icon name="translate" /> Bản dịch đã lưu
+        </h2>
+        {items && items.length > 0 && (
           <button
             type="button"
-            className="button-danger"
+            className="btn btn-danger-ghost btn-sm"
             onClick={() => {
               setClearError("");
-              setMessage("");
               setConfirming(true);
             }}
           >
-            Xóa tất cả bản dịch đã lưu
+            Xóa tất cả
           </button>
-        </>
+        )}
+      </div>
+      <p className="field-hint">
+        Hệ thống lưu lại bản dịch sau lần dịch đầu tiên. Xóa đi khi bản dịch sai để khách xem lần tới được
+        dịch lại.
+      </p>
+
+      {error && <p className="field-error">Không tải được bản dịch: {error}</p>}
+      {!items && !error && <div className="skeleton skeleton--line" />}
+      {items && items.length === 0 && <p className="muted">Chưa có bản dịch nào được lưu.</p>}
+      {items && items.length > 0 && (
+        <ul className="translation-list">
+          {items.map((t) => (
+            <li key={t.languageCode}>
+              <strong>{LANGUAGE_NAMES[t.languageCode] ?? t.languageCode}</strong>
+              <p>{t.translatedText}</p>
+            </li>
+          ))}
+        </ul>
       )}
 
       <ConfirmDialog
@@ -480,8 +571,8 @@ function TranslationCachePanel({ placeId, token }) {
         onCancel={() => setConfirming(false)}
       >
         <p>
-          {items?.length ?? 0} bản dịch của quán sẽ bị xóa. Khi khách chọn ngôn ngữ, hệ thống sẽ dịch
-          lại từ nội dung tiếng Việt hiện tại.
+          {items?.length ?? 0} bản dịch của quán sẽ bị xóa. Khi khách chọn ngôn ngữ, hệ thống sẽ dịch lại từ
+          nội dung tiếng Việt hiện tại.
         </p>
       </ConfirmDialog>
     </section>

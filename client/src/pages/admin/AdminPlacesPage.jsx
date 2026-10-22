@@ -1,43 +1,43 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { deletePlace, getPlaceFilters, getPlaces } from "../../api";
+import { Link, useLocation, useSearchParams } from "react-router";
+import { deletePlace, getAllPlaces, getPlaceFilters, getPlaces } from "../../api";
 import { useAuth } from "../../auth/useAuth";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Icon from "../../components/Icon";
 import Pagination from "../../components/Pagination";
+import PlaceImage from "../../components/PlaceImage";
+import ProfilePips from "../../components/ProfilePips";
 import { formatPrice } from "../../utils/format";
+import { MISSING_FILTERS, isSamplePlace, matchesMissingFilter } from "../../utils/placeStatus";
+import { useBrokenImages } from "../../utils/useBrokenImages";
+import AdminLayout from "./AdminLayout";
+import { useToast } from "./toastContext";
 
 const PAGE_SIZE = 10;
 
+
 export default function AdminPlacesPage() {
   const { token } = useAuth();
+  const toast = useToast();
   const location = useLocation();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const search = searchParams.get("search") ?? "";
   const category = searchParams.get("category") ?? "";
   const ward = searchParams.get("ward") ?? "";
+  const missing = searchParams.get("missing") ?? "";
   const page = Number(searchParams.get("page")) || 1;
 
   const [filters, setFilters] = useState({ categories: [], wards: [] });
-  const [result, setResult] = useState(null);
+  // data: trang kết quả từ server, hoặc { all } khi lọc "còn thiếu" (lọc ở trình duyệt)
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Thông báo sau khi thêm/sửa (trang form gửi qua location.state) hoặc sau khi xóa
-  const [flash, setFlash] = useState(() => location.state?.flash ?? "");
-
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-
-  // Xóa state khỏi lịch sử để tải lại trang không hiện lại thông báo cũ
-  useEffect(() => {
-    if (location.state?.flash) {
-      navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
-    }
-  }, [location, navigate]);
 
   useEffect(() => {
     getPlaceFilters()
@@ -50,9 +50,14 @@ export default function AdminPlacesPage() {
     setLoading(true);
     setError("");
 
-    getPlaces({ search, category, ward, page, pageSize: PAGE_SIZE })
-      .then((data) => {
-        if (!ignore) setResult(data);
+    const params = { search, category, ward };
+    const load = missing
+      ? getAllPlaces(params).then((all) => ({ all }))
+      : getPlaces({ ...params, page, pageSize: PAGE_SIZE });
+
+    load
+      .then((loaded) => {
+        if (!ignore) setData(loaded);
       })
       .catch((err) => {
         if (!ignore) setError(err.message);
@@ -64,7 +69,20 @@ export default function AdminPlacesPage() {
     return () => {
       ignore = true;
     };
-  }, [search, category, ward, page, reloadKey]);
+  }, [search, category, ward, missing, page, reloadKey]);
+
+  const brokenImages = useBrokenImages((data?.all ?? data?.items)?.map((p) => p.imageUrl));
+  let result = data;
+  if (data?.all) {
+    const filtered = data.all.filter((p) => matchesMissingFilter(p, missing, { brokenImages }));
+    result = {
+      items: filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+      total: filtered.length,
+      page,
+      pageSize: PAGE_SIZE,
+      totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+    };
+  }
 
   function updateParams(changes) {
     const next = new URLSearchParams(searchParams);
@@ -82,19 +100,8 @@ export default function AdminPlacesPage() {
     updateParams({ search: String(value).trim() });
   }
 
-  function openDelete(place) {
-    setDeleteError("");
-    setDeleting(place);
-  }
-
-  function closeDelete() {
-    setDeleting(null);
-    setDeleteError("");
-  }
-
-  // Sau khi xóa: tải lại danh sách; nếu vừa xóa quán cuối cùng của trang thì lùi một trang
   function afterDelete(message) {
-    setFlash(message);
+    toast(message);
     setDeleting(null);
     setReloadKey((k) => k + 1);
     if (result?.items.length === 1 && page > 1) updateParams({ page: page - 1 });
@@ -114,186 +121,214 @@ export default function AdminPlacesPage() {
     }
   }
 
-  const hasFilters = search || category || ward;
+  const hasFilters = Boolean(search || category || ward || missing);
   const returnState = { returnTo: location.search };
 
   return (
-    <>
-      <div className="page-header">
-        <div>
-          <h1>Quản lý quán ăn</h1>
-          <p className="muted">
-            Thêm, sửa, xóa quán và nội dung thuyết minh hiển thị cho khách.
-          </p>
-        </div>
-        <Link to="/admin/places/new" state={returnState} className="button-link">
-          + Thêm quán
+    <AdminLayout
+      title="Quán ăn"
+      description="Thêm, sửa, xóa quán và nội dung thuyết minh hiển thị cho khách."
+      actions={
+        <Link to="/admin/places/new" state={returnState} className="btn btn-primary">
+          <Icon name="plus" />
+          Thêm quán
         </Link>
-      </div>
+      }
+    >
+      <div className="toolbar">
+        <form className="search-field" onSubmit={handleSearch} role="search">
+          <Icon name="search" />
+          <input
+            key={search}
+            name="search"
+            defaultValue={search}
+            placeholder="Tìm theo tên, món, địa chỉ… (gõ không dấu cũng được)"
+            aria-label="Tìm quán"
+          />
+          <button type="submit" className="btn btn-secondary btn-sm">
+            Tìm
+          </button>
+        </form>
 
-      {flash && (
-        <div className="alert alert--success" role="status">
-          <span>{flash}</span>
-          <button
-            type="button"
-            className="alert-close"
-            aria-label="Đóng thông báo"
-            onClick={() => setFlash("")}
+        <div className="toolbar-filters">
+          <select
+            value={category}
+            onChange={(e) => updateParams({ category: e.target.value })}
+            aria-label="Lọc theo loại món"
           >
-            ×
-          </button>
+            <option value="">Mọi loại món</option>
+            {filters.categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={ward}
+            onChange={(e) => updateParams({ ward: e.target.value })}
+            aria-label="Lọc theo phường"
+          >
+            <option value="">Mọi phường</option>
+            {filters.wards.map((w) => (
+              <option key={w} value={w}>
+                {w}
+              </option>
+            ))}
+          </select>
+          <select
+            value={missing}
+            onChange={(e) => updateParams({ missing: e.target.value })}
+            aria-label="Lọc theo hồ sơ"
+          >
+            <option value="">Mọi hồ sơ</option>
+            {MISSING_FILTERS.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          {hasFilters && (
+            <button type="button" className="btn-text" onClick={() => setSearchParams({})}>
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
-      )}
-
-      <form className="search-bar" onSubmit={handleSearch}>
-        <input
-          key={search}
-          name="search"
-          defaultValue={search}
-          placeholder="Tìm theo tên, món, địa chỉ... (gõ không dấu cũng được)"
-          aria-label="Tìm quán"
-        />
-        <button type="submit">Tìm</button>
-      </form>
-
-      <div className="filters">
-        <select
-          value={category}
-          onChange={(e) => updateParams({ category: e.target.value })}
-          aria-label="Lọc theo loại món"
-        >
-          <option value="">Mọi loại món</option>
-          {filters.categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select
-          value={ward}
-          onChange={(e) => updateParams({ ward: e.target.value })}
-          aria-label="Lọc theo phường"
-        >
-          <option value="">Mọi phường</option>
-          {filters.wards.map((w) => (
-            <option key={w} value={w}>
-              {w}
-            </option>
-          ))}
-        </select>
-        {hasFilters && (
-          <button type="button" className="link-button" onClick={() => setSearchParams({})}>
-            Xóa bộ lọc
-          </button>
-        )}
       </div>
 
       {error && (
-        <p className="alert alert--error">
-          Không tải được danh sách: {error}{" "}
-          <button type="button" className="link-button" onClick={() => setReloadKey((k) => k + 1)}>
+        <div className="notice notice--error">
+          Không tải được danh sách: {error}
+          <button type="button" className="btn-text" onClick={() => setReloadKey((k) => k + 1)}>
             Thử lại
           </button>
-        </p>
+        </div>
       )}
-      {loading && !result && <p className="muted">Đang tải...</p>}
+
+      {loading && !result && <TableSkeleton />}
 
       {result && (
         <>
-          <p className="muted">
+          <p className="result-count">
             {hasFilters ? `Tìm thấy ${result.total} quán` : `Tổng cộng ${result.total} quán`}
-            {loading ? " (đang cập nhật...)" : ""}
+            {loading && <span className="muted"> (đang cập nhật…)</span>}
           </p>
 
           {result.items.length === 0 ? (
-            <div className="empty-state">
+            <div className="surface empty-block">
               {page > 1 && result.total > 0 ? (
                 <>
-                  <p>Trang {page} không có quán nào.</p>
-                  <button type="button" onClick={() => updateParams({ page: 1 })}>
+                  <h2>Trang {page} không có quán nào</h2>
+                  <button type="button" className="btn btn-secondary" onClick={() => updateParams({ page: 1 })}>
                     Về trang 1
                   </button>
                 </>
               ) : hasFilters ? (
-                <p>Không có quán nào khớp với bộ lọc.</p>
+                <>
+                  <h2>Không có quán nào khớp bộ lọc</h2>
+                  <p>Thử bỏ bớt điều kiện lọc hoặc tìm bằng từ khác.</p>
+                  <button type="button" className="btn btn-secondary" onClick={() => setSearchParams({})}>
+                    Xóa bộ lọc
+                  </button>
+                </>
               ) : (
                 <>
-                  <p>Chưa có quán nào.</p>
-                  <Link to="/admin/places/new" state={returnState} className="button-link">
+                  <h2>Chưa có quán nào</h2>
+                  <p>Thêm quán đầu tiên từ dữ liệu bạn đã khảo sát.</p>
+                  <Link to="/admin/places/new" state={returnState} className="btn btn-primary">
+                    <Icon name="plus" />
                     Thêm quán đầu tiên
                   </Link>
                 </>
               )}
             </div>
           ) : (
-            <div className="table-wrap">
-              <table className="admin-table">
+            <div className="surface table-surface">
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th scope="col">Quán</th>
                     <th scope="col">Địa chỉ</th>
-                    <th scope="col">Giá</th>
-                    <th scope="col">Giờ mở cửa</th>
+                    <th scope="col">Giá và giờ mở cửa</th>
+                    <th scope="col">Hồ sơ</th>
                     <th scope="col" className="col-actions">
-                      Thao tác
+                      <span className="sr-only">Thao tác</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {result.items.map((place) => (
-                    <tr key={place.id}>
-                      <td>
-                        <div className="place-cell">
-                          {place.imageUrl ? (
-                            <img src={place.imageUrl} alt="" className="thumb" loading="lazy" />
-                          ) : (
-                            <div className="thumb thumb--empty" aria-hidden="true">
-                              🍜
+                  {result.items.map((place) => {
+                    const price = formatPrice(place);
+                    return (
+                      <tr key={place.id}>
+                        <td>
+                          <div className="place-cell">
+                            <PlaceImage
+                              src={place.imageUrl}
+                              className="thumb"
+                              fallbackClassName="thumb--empty"
+                            />
+                            <div className="place-cell-text">
+                              <Link
+                                to={`/admin/places/${place.id}/edit`}
+                                state={returnState}
+                                className="place-name"
+                              >
+                                {place.name}
+                              </Link>
+                              <span className="place-tags">
+                                {place.category && <span className="tag">{place.category}</span>}
+                                {isSamplePlace(place) && <span className="tag tag--sample">Mẫu</span>}
+                              </span>
                             </div>
-                          )}
-                          <div>
-                            <strong>{place.name}</strong>
-                            {place.category && (
-                              <div>
-                                <span className="badge">{place.category}</span>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td data-label="Địa chỉ">
-                        {place.address || <span className="muted">Chưa có</span>}
-                        {place.ward && <div className="muted small">{place.ward}</div>}
-                      </td>
-                      <td data-label="Giá">
-                        {formatPrice(place) ?? <span className="muted">Chưa có</span>}
-                      </td>
-                      <td data-label="Giờ mở cửa">
-                        {place.openingHours || <span className="muted">Chưa có</span>}
-                      </td>
-                      <td className="col-actions">
-                        <div className="row-actions">
-                          <Link to={`/places/${place.id}`} className="action-link">
-                            Xem
-                          </Link>
-                          <Link
-                            to={`/admin/places/${place.id}/edit`}
-                            state={returnState}
-                            className="action-link"
-                          >
-                            Sửa
-                          </Link>
-                          <button
-                            type="button"
-                            className="action-link action-link--danger"
-                            onClick={() => openDelete(place)}
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td data-label="Địa chỉ">
+                          {place.address || <span className="muted">Chưa có địa chỉ</span>}
+                          {place.ward && <div className="cell-sub">{place.ward}</div>}
+                        </td>
+                        <td data-label="Giá">
+                          <span className="nowrap">{price ?? <span className="muted">Chưa có giá</span>}</span>
+                          {place.openingHours && <div className="cell-sub">{place.openingHours}</div>}
+                        </td>
+                        <td data-label="Hồ sơ">
+                          <ProfilePips place={place} brokenImages={brokenImages} />
+                        </td>
+                        <td className="col-actions">
+                          <div className="row-actions">
+                            <Link
+                              to={`/places/${place.id}`}
+                              className="admin-icon-button"
+                              aria-label={`Xem ${place.name} như khách`}
+                              title="Xem như khách"
+                            >
+                              <Icon name="eye" />
+                            </Link>
+                            <Link
+                              to={`/admin/places/${place.id}/edit`}
+                              state={returnState}
+                              className="admin-icon-button"
+                              aria-label={`Sửa ${place.name}`}
+                              title="Sửa"
+                            >
+                              <Icon name="edit" />
+                            </Link>
+                            <button
+                              type="button"
+                              className="admin-icon-button admin-icon-button--danger"
+                              onClick={() => {
+                                setDeleteError("");
+                                setDeleting(place);
+                              }}
+                              aria-label={`Xóa ${place.name}`}
+                              title="Xóa"
+                            >
+                              <Icon name="trash" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -317,13 +352,26 @@ export default function AdminPlacesPage() {
         busy={deleteBusy}
         error={deleteError}
         onConfirm={confirmDelete}
-        onCancel={closeDelete}
+        onCancel={() => setDeleting(null)}
       >
         <p>
-          Quán <strong>{deleting?.name}</strong> và toàn bộ bản dịch đã lưu của quán sẽ bị
-          xóa vĩnh viễn. Không thể hoàn tác.
+          Quán <strong>{deleting?.name}</strong> và toàn bộ bản dịch đã lưu của quán sẽ bị xóa vĩnh viễn.
+          Không thể hoàn tác.
         </p>
       </ConfirmDialog>
-    </>
+    </AdminLayout>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="surface table-surface" aria-busy="true" aria-label="Đang tải danh sách">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div key={i} className="skeleton-row">
+          <div className="skeleton skeleton--thumb" />
+          <div className="skeleton skeleton--line" />
+        </div>
+      ))}
+    </div>
   );
 }

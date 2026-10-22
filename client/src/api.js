@@ -62,6 +62,17 @@ export function getPlaces(params = {}) {
   return request(`/api/Places${qs ? `?${qs}` : ""}`);
 }
 
+// Lấy hết các quán khớp bộ lọc (gọi lần lượt từng trang 50 quán).
+// Dùng cho trang tổng quan và bộ lọc "còn thiếu thông tin" của admin.
+export async function getAllPlaces(params = {}) {
+  const items = [];
+  for (let page = 1; ; page++) {
+    const data = await getPlaces({ ...params, page, pageSize: 50 });
+    items.push(...data.items);
+    if (page >= data.totalPages || data.items.length === 0) return items;
+  }
+}
+
 export const getPlaceFilters = () => request("/api/Places/filters");
 export const getPlace = (id) => request(`/api/Places/${id}`);
 export const getTranslation = (id, lang) =>
