@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using AudioGuide.Api.Middleware;
+using AudioGuide.Api.RateLimiting;
 using AudioGuide.Business.Providers;
 using AudioGuide.Business.Services;
 using AudioGuide.Data;
@@ -86,6 +87,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -131,6 +133,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

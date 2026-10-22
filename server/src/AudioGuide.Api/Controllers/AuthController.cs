@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using AudioGuide.Api.RateLimiting;
 using AudioGuide.Business.Dtos;
 using AudioGuide.Business.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AudioGuide.Api.Controllers;
 
@@ -18,10 +20,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto) =>
         Ok(await _auth.RegisterAsync(dto));
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
     {
         var result = await _auth.LoginAsync(dto);
