@@ -77,6 +77,35 @@ export function isHttpUrl(value) {
   }
 }
 
+// Ảnh đã tải lên server (đường dẫn tương đối, khớp LocalImageStorage.UrlPrefix ở backend)
+export const UPLOAD_PREFIX = "/uploads/places/";
+
+export function isUploadedImage(value) {
+  return typeof value === "string" && value.startsWith(UPLOAD_PREFIX) && !value.includes("..");
+}
+
+// Ảnh bìa: link http(s) bên ngoài hoặc ảnh đã tải lên
+export function isImageUrl(value) {
+  return isUploadedImage(value) || isHttpUrl(value);
+}
+
+// Ảnh món ăn tải lên (khớp PlaceImageService ở backend)
+export const GALLERY_LIMITS = {
+  maxImages: 20,
+  maxMb: 5,
+  caption: 100,
+  types: ["image/jpeg", "image/png", "image/webp"],
+  accept: "image/jpeg,image/png,image/webp",
+};
+
+// Kiểm tra nhanh trước khi tải lên; server vẫn kiểm tra lại nội dung file. Trả về thông báo lỗi hoặc "".
+export function checkImageFile(file) {
+  if (!GALLERY_LIMITS.types.includes(file.type)) return "Chỉ nhận ảnh JPG, PNG hoặc WebP.";
+  if (file.size > GALLERY_LIMITS.maxMb * 1024 * 1024) return `Ảnh lớn hơn ${GALLERY_LIMITS.maxMb} MB.`;
+  if (file.size === 0) return "File ảnh trống.";
+  return "";
+}
+
 // Trả về object { tênÔ: "thông báo lỗi" }; rỗng nghĩa là hợp lệ
 export function validatePlaceForm(values) {
   const errors = {};
@@ -106,7 +135,7 @@ export function validatePlaceForm(values) {
   }
 
   const image = text(values.imageUrl);
-  if (image && !isHttpUrl(image)) {
+  if (image && !isImageUrl(image)) {
     errors.imageUrl = "Link ảnh phải bắt đầu bằng http:// hoặc https://.";
   } else {
     tooLong("imageUrl", "Link ảnh");

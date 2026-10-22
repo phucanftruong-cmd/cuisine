@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { mediaUrl } from "../api";
 import { I18nContext } from "../i18n/i18nContext";
 import { translate } from "../i18n/messages";
 
@@ -12,7 +13,7 @@ export default function PlaceImage({
   loading = "lazy",
   fallback = null,
 }) {
-  const url = src?.trim();
+  const url = mediaUrl(src);
   if (!url) return fallback ?? <ImageFallback className={`${className} ${fallbackClassName}`} />;
   // key: đổi link thì thử tải lại từ đầu
   return (

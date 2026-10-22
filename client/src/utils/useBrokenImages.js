@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { mediaUrl } from "../api";
 
 // Thử tải ngầm các link ảnh, trả về Set các link không tải được.
 // Kết quả được nhớ lại trong phiên để chuyển trang không phải kiểm tra lại.
@@ -24,7 +25,7 @@ export function useBrokenImages(urls) {
         cache.set(url, "error");
         if (!cancelled) setVersion((v) => v + 1);
       };
-      img.src = url;
+      img.src = mediaUrl(url);
       images.push(img);
     }
     return () => {
