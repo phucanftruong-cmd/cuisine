@@ -1,4 +1,5 @@
 using AudioGuide.Business.Dtos;
+using AudioGuide.Business.Providers;
 using AudioGuide.Data.Entities;
 using AudioGuide.Data.Repositories;
 
@@ -19,11 +20,17 @@ public class PlaceService : IPlaceService
 
     private readonly IPlaceRepository _repo;
     private readonly ITranslationRepository _translations;
+    private readonly IPlaceImageRepository _images;
+    private readonly IImageStorage _storage;
 
-    public PlaceService(IPlaceRepository repo, ITranslationRepository translations)
+    public PlaceService(
+        IPlaceRepository repo, ITranslationRepository translations,
+        IPlaceImageRepository images, IImageStorage storage)
     {
         _repo = repo;
         _translations = translations;
+        _images = images;
+        _storage = storage;
     }
 
     public async Task<PagedResultDto<PlaceDto>> SearchAsync(PlaceQueryDto query)
@@ -91,7 +98,11 @@ public class PlaceService : IPlaceService
         var place = await _repo.GetByIdAsync(id);
         if (place is null) return false;
 
+        // Database tự xóa các dòng ảnh theo quán; file ảnh thì phải xóa tay
+        var images = await _images.GetByPlaceIdAsync(id);
         await _repo.DeleteAsync(place);
+        foreach (var image in images)
+            await _storage.DeleteAsync(image.Url);
         return true;
     }
 
@@ -166,8 +177,10 @@ public class PlaceService : IPlaceService
         if (longitude is < -180 or > 180)
             throw new ArgumentException("Kinh độ phải nằm trong khoảng từ -180 đến 180.");
 
+        // Ảnh bìa: link http(s) bên ngoài, hoặc ảnh đã tải lên server (/uploads/places/...)
         var image = CleanText(imageUrl);
         if (image is not null &&
+            !(image.StartsWith(LocalImageStorage.UrlPrefix, StringComparison.Ordinal) && !image.Contains("..")) &&
             !(Uri.TryCreate(image, UriKind.Absolute, out var uri) &&
               (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)))
             throw new ArgumentException("Link ảnh phải là địa chỉ http hoặc https hợp lệ.");

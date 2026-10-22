@@ -7,6 +7,7 @@ using AudioGuide.Data;
 using AudioGuide.Data.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
@@ -34,6 +35,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Dependency Injection: interface -> implementation
 builder.Services.AddScoped<IPlaceRepository, PlaceRepository>();
 builder.Services.AddScoped<IPlaceService, PlaceService>();
+
+// Ảnh món ăn: file lưu trong thư mục uploads (đổi chỗ bằng cấu hình Uploads:Path)
+var uploadsPath = Path.GetFullPath(
+    builder.Configuration["Uploads:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "uploads"));
+Directory.CreateDirectory(uploadsPath);
+builder.Services.AddSingleton<IImageStorage>(new LocalImageStorage(uploadsPath));
+builder.Services.AddScoped<IPlaceImageRepository, PlaceImageRepository>();
+builder.Services.AddScoped<IPlaceImageService, PlaceImageService>();
 
 builder.Services.AddScoped<ITranslationRepository, TranslationRepository>();
 builder.Services.AddScoped<IPlaceTranslationService, PlaceTranslationService>();
@@ -113,6 +122,18 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 app.UseCors("Frontend");
+
+// Phục vụ ảnh đã tải lên tại /uploads. Tên file là GUID, không bao giờ đổi nội dung nên cho cache lâu.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public, max-age=604800, immutable";
+        ctx.Context.Response.Headers.XContentTypeOptions = "nosniff";
+    }
+});
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

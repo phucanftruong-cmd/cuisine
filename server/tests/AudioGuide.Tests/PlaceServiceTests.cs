@@ -1,4 +1,5 @@
 using AudioGuide.Business.Dtos;
+using AudioGuide.Business.Providers;
 using AudioGuide.Business.Services;
 using AudioGuide.Data.Entities;
 using AudioGuide.Data.Repositories;
@@ -10,11 +11,14 @@ public class PlaceServiceTests
 {
     private readonly Mock<IPlaceRepository> _repo = new();
     private readonly Mock<ITranslationRepository> _translations = new();
+    private readonly Mock<IPlaceImageRepository> _images = new();
+    private readonly Mock<IImageStorage> _storage = new();
     private readonly PlaceService _service;
 
     public PlaceServiceTests()
     {
-        _service = new PlaceService(_repo.Object, _translations.Object);
+        _images.Setup(r => r.GetByPlaceIdAsync(It.IsAny<int>())).ReturnsAsync(new List<PlaceImage>());
+        _service = new PlaceService(_repo.Object, _translations.Object, _images.Object, _storage.Object);
     }
 
     [Fact]
@@ -216,6 +220,39 @@ public class PlaceServiceTests
 
         Assert.True(result);
         _repo.Verify(r => r.DeleteAsync(place), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeletesUploadedImageFiles()
+    {
+        var place = new Place { Id = 1, Name = "A", Description = "a" };
+        _repo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(place);
+        _images.Setup(r => r.GetByPlaceIdAsync(1)).ReturnsAsync(new List<PlaceImage>
+        {
+            new() { Id = 1, PlaceId = 1, Url = "/uploads/places/a.jpg" },
+            new() { Id = 2, PlaceId = 1, Url = "/uploads/places/b.png" }
+        });
+
+        await _service.DeleteAsync(1);
+
+        _storage.Verify(s => s.DeleteAsync("/uploads/places/a.jpg"), Times.Once);
+        _storage.Verify(s => s.DeleteAsync("/uploads/places/b.png"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("/uploads/places/abc.jpg", true)]
+    [InlineData("https://example.com/a.jpg", true)]
+    [InlineData("/uploads/places/../secret.txt", false)]
+    [InlineData("/etc/passwd", false)]
+    [InlineData("javascript:alert(1)", false)]
+    public async Task CreateAsync_ImageUrl_AcceptsHttpOrUploadedPath(string url, bool valid)
+    {
+        var create = () => _service.CreateAsync(new CreatePlaceDto("A", "a", ImageUrl: url));
+
+        if (valid)
+            Assert.Equal(url, (await create()).ImageUrl);
+        else
+            await Assert.ThrowsAsync<ArgumentException>(create);
     }
 
     [Fact]
