@@ -43,7 +43,8 @@ dotnet test
 
 | Method | Đường dẫn | Mô tả |
 |--------|-----------|-------|
-| GET | /api/Places | Danh sách địa điểm |
+| GET | /api/Places?search=&category=&ward=&maxPrice=&page=&pageSize= | Danh sách có tìm kiếm (gõ không dấu cũng được), lọc và phân trang |
+| GET | /api/Places/filters | Danh sách loại món và phường để làm bộ lọc |
 | GET | /api/Places/{id} | Chi tiết |
 | POST | /api/Places | Tạo mới |
 | PUT | /api/Places/{id} | Cập nhật |

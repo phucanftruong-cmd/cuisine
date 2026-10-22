@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { getPlaces } from "./api";
 
+function formatPrice(place) {
+  const { priceMin, priceMax } = place;
+  if (priceMin == null && priceMax == null) return null;
+  const fmt = (n) => `${n.toLocaleString("vi-VN")}đ`;
+  if (priceMin != null && priceMax != null) return `${fmt(priceMin)} - ${fmt(priceMax)}`;
+  return fmt(priceMin ?? priceMax);
+}
+
 export default function App() {
   const [places, setPlaces] = useState([]);
   const [error, setError] = useState("");
@@ -8,7 +16,7 @@ export default function App() {
 
   useEffect(() => {
     getPlaces()
-      .then(setPlaces)
+      .then((data) => setPlaces(data.items))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -24,7 +32,10 @@ export default function App() {
         {places.map((p) => (
           <li key={p.id}>
             <strong>{p.name}</strong>
-            <p>{p.description}</p>
+            {p.category && <span> · {p.category}</span>}
+            <p>{p.address}</p>
+            {formatPrice(p) && <p>Giá: {formatPrice(p)}</p>}
+            {p.openingHours && <p>Giờ mở cửa: {p.openingHours}</p>}
           </li>
         ))}
       </ul>
