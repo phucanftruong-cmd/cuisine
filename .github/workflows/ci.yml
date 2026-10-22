@@ -6,8 +6,22 @@ on:
   pull_request:
     branches: [ main ]
 
+# Mặc định chỉ được đọc repo; job nào cần thêm quyền thì tự khai báo
+permissions:
+  contents: read
+
+# Push liên tục lên cùng một PR thì hủy lần chạy cũ; trên main thì chạy hết từng commit
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
-  build-test:
+  server:
+    name: server
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,19 +32,38 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          global-json-file: server/global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/**/*.csproj', 'server/.config/dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore
+        run: |
+          dotnet restore
+          dotnet tool restore
 
       - name: Build
         run: dotnet build --no-restore -c Release
 
       - name: Test
-        run: dotnet test --no-build -c Release --verbosity normal
+        run: dotnet test --no-build -c Release --logger "console;verbosity=normal"
+
+      # Sửa entity mà quên tạo migration thì CI đỏ ở đây, thay vì lỗi lúc chạy thật
+      - name: Migrations khớp với model
+        env:
+          Jwt__Key: ci-design-time-key-0123456789-abcdefghijkl
+        run: >
+          dotnet ef migrations has-pending-model-changes
+          --project src/AudioGuide.Data
+          --startup-project src/AudioGuide.Api
+          --configuration Release
+          --no-build
 
   client:
-    # Frontend: test, build (lỗi cú pháp, import sai sẽ làm CI đỏ)
+    name: client
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,12 +74,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: client/.nvmrc
           cache: npm
           cache-dependency-path: client/package-lock.json
 
       - name: Install
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Test
         run: npm test
@@ -55,8 +91,46 @@ jobs:
         run: npm run build
 
   docker:
-    # CD: chỉ chạy khi push vào main và test đã xanh
-    needs: build-test
+    # Build image trên cả PR (không push) và chạy thử: Dockerfile hỏng thì biết trước khi merge
+    name: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          load: true
+          tags: cuisine-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Chạy thử container
+        run: |
+          docker run -d --name api -p 8080:8080 \
+            -e Jwt__Key=ci-smoke-key-0123456789-abcdefghijklmnop \
+            -e Admin__Username=admin -e Admin__Password=ci-smoke-password \
+            cuisine-api:ci
+          # Server phải khởi động, chạy migration và trả được danh sách địa điểm
+          for i in $(seq 1 30); do
+            if curl -fsS "http://localhost:8080/api/Places?pageSize=1" > /dev/null; then
+              echo "API OK sau ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API không lên sau 30s"
+          docker logs api
+          exit 1
+
+  publish:
+    # CD: chỉ khi push vào main và cả 3 job trên đều xanh
+    name: publish
+    needs: [ server, client, docker ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -66,16 +140,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Tag theo commit (sha-xxxxxxx) để biết chính xác bản nào đang chạy và quay lại bản cũ được,
+      # thêm tag "main" trỏ tới bản mới nhất. Tên image được tự chuyển sang chữ thường.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+
       - uses: docker/build-push-action@v6
         with:
           context: ./server
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
