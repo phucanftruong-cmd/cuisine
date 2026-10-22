@@ -38,14 +38,35 @@ public class PlaceTranslationService : IPlaceTranslationService
 
         var translatedText = await _provider.TranslateAsync(place.Description, SourceLanguage, lang);
 
-        await _translations.AddAsync(new Translation
+        // Nếu request khác vừa lưu trước, repository trả về bản đã lưu đó
+        var saved = await _translations.AddAsync(new Translation
         {
             PlaceId = placeId,
             LanguageCode = lang,
             TranslatedText = translatedText
         });
 
-        return new TranslationDto(placeId, lang, translatedText, false);
+        return new TranslationDto(placeId, lang, saved.TranslatedText, false);
+    }
+
+    public async Task<List<TranslationDto>?> GetCachedAsync(int placeId)
+    {
+        var place = await _places.GetByIdAsync(placeId);
+        if (place is null) return null;
+
+        var items = await _translations.GetByPlaceIdAsync(placeId);
+        return items
+            .Select(t => new TranslationDto(t.PlaceId, t.LanguageCode, t.TranslatedText, true))
+            .ToList();
+    }
+
+    public async Task<bool> ClearCacheAsync(int placeId)
+    {
+        var place = await _places.GetByIdAsync(placeId);
+        if (place is null) return false;
+
+        await _translations.DeleteByPlaceIdAsync(placeId);
+        return true;
     }
 
     private static string Normalize(string languageCode)

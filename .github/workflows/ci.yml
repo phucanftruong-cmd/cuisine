@@ -29,6 +29,31 @@ jobs:
       - name: Test
         run: dotnet test --no-build -c Release --verbosity normal
 
+  client:
+    # Frontend: test, build (lỗi cú pháp, import sai sẽ làm CI đỏ)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
   docker:
     # CD: chỉ chạy khi push vào main và test đã xanh
     needs: build-test
